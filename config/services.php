@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'tatum' => [
+        'base_url' => env('TATUM_URL', 'https://api.tatum.io'),
+        'api_key' => env('TATUM_KEY'),
+        'api_key_gaspump' => env('TATUM_KEY_GASPUMP'),
+    ],
+
 ];

@@ -23,7 +23,7 @@ class WalletTransferService
         string $description
     ): void {
         if ($from->getCurrencyId() !== $to->getCurrencyId()) {
-            throw new Exception("Currency mismatch.");
+            throw new Exception("Currency mismatch.", 400);
         }
 
         $reference = uniqid('TRX-');

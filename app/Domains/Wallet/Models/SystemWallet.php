@@ -3,8 +3,9 @@
 namespace App\Domains\Wallet\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Domains\Wallet\Contracts\WalletAccountInterface;
 
-class SystemWallet extends Model
+class SystemWallet extends Model implements WalletAccountInterface
 {
     protected $fillable = [
         'type',
@@ -16,4 +17,19 @@ class SystemWallet extends Model
     protected $casts = [
         'type' => \App\Enum\SystemWalletType::class,
     ];
+
+    public function getBalance(): float
+    {
+        return $this->balance;
+    }
+
+    public function getWalletId(): string
+    {
+        return $this->id;
+    }
+
+    public function getLedgerBalance(): float
+    {
+        return $this->balance;
+    }
 }
