@@ -2,7 +2,16 @@
 
 namespace App\Enum;
 
-enum TransactionType: int
+enum TransactionType: string
 {
-    case DEPOSIT = 1;
+    case DEBIT = 'debit';
+    case CREDIT = 'credit';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::DEBIT => 'Debit',
+            self::CREDIT => 'Credit',
+        };
+    }
 }
