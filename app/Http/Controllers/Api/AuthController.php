@@ -18,21 +18,17 @@ class AuthController extends Controller
         CreateDefaultWalletsAction $createDefaultWalletsAction
     ) {
         try {
-            DB::transaction(function () use ($request, $registerUserAction, $createDefaultWalletsAction, &$token) {
+            $user = DB::transaction(function () use ($request, $registerUserAction, $createDefaultWalletsAction) {
                 $user = $registerUserAction->execute($request->validated());
 
                 // Cross-domain orchestration: setting up wallets after user registration
                 $createDefaultWalletsAction->execute($user);
 
-                Auth::login($user);
-
-                $token = $user->createToken('mobile');
-
-                return response()->json([
-                    'success' => true,
-                    'token' => $token->plainTextToken
-                ]);
+                return $user;
             });
+
+            Auth::login($user);
+            $token = $user->createToken('mobile');
         } catch (\Exception $e) {
             report($e);
 
@@ -47,6 +43,12 @@ class AuthController extends Controller
                 'message' => $e->getMessage()
             ], $statusCode);
         }
+
+        return response()->json([
+            'success' => true,
+            'user' => $user,
+            'token' => $token->plainTextToken
+        ]);
     }
 
 

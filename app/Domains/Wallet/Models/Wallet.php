@@ -23,6 +23,11 @@ class Wallet extends Model implements WalletAccountInterface
         return (string) $this->id;
     }
 
+    public function getWalletType(): string
+    {
+        return self::class;
+    }
+
     public function getUserId(): int
     {
         return (int) $this->user_id;

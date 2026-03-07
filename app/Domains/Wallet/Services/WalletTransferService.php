@@ -29,8 +29,8 @@ class WalletTransferService
         $reference = uniqid('TRX-');
 
         DB::transaction(function () use ($from, $to, $amount, $reference, $description) {
-            $this->repository->recordEntry($from, $amount, 'debit', $reference, $description);
-            $this->repository->recordEntry($to, $amount, 'credit', $reference, $description);
+            $this->repository->recordEntry($from, $amount, 'debit', 'transfer', $reference, $description);
+            $this->repository->recordEntry($to, $amount, 'credit', 'transfer', $reference, $description);
         });
     }
 }

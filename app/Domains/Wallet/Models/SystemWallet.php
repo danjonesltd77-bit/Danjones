@@ -28,6 +28,16 @@ class SystemWallet extends Model implements WalletAccountInterface
         return $this->id;
     }
 
+    public function getWalletType(): string
+    {
+        return self::class;
+    }
+
+    public function getUserId(): int
+    {
+        return 0; // System wallets do not belong to users
+    }
+
     public function getLedgerBalance(): float
     {
         return $this->balance;

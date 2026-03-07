@@ -12,12 +12,11 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'wallet_id',
+        'wallet_type',
         'currency_id',
         'action',
         'amount',
         'usd',
-        'fee',
-        'fee_usd',
         'type',
         'previous_balance',
         'current_balance',
@@ -33,4 +32,9 @@ class Transaction extends Model
         'action' => \App\Enum\TransactionAction::class,
         'status' => \App\Enum\TransactionStatus::class,
     ];
+
+    public function wallet()
+    {
+        return $this->morphTo('wallet', 'wallet_type', 'wallet_id');
+    }
 }

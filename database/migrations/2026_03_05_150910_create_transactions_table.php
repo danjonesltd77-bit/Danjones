@@ -13,14 +13,13 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->integer('user_id');
+            $table->integer('user_id')->default(0);
             $table->integer('wallet_id');
             $table->integer('currency_id');
+            $table->string('wallet_type')->default(Wallet::class);
             $table->string('action'); // Defines Deposit, Withdrawal, Transfer, Fee, etc.
             $table->decimal('amount', 36, 18);
             $table->decimal('usd', 36, 18);
-            $table->decimal('fee', 36, 18);
-            $table->decimal('fee_usd', 36, 18);
             $table->string('type'); // Defines Debit or Credit
             $table->decimal('previous_balance', 36, 18);
             $table->decimal('current_balance', 36, 18);

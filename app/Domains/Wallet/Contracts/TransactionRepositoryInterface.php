@@ -8,6 +8,7 @@ interface TransactionRepositoryInterface
         WalletAccountInterface $account,
         float $amount,
         string $type,
+        string $action,
         string $reference,
         string $description,
         array $metadata = []
