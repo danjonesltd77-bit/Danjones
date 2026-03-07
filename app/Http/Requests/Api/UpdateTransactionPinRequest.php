@@ -17,8 +17,8 @@ class UpdateTransactionPinRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => ['required', 'string', 'min:8'],
-            'pin' => ['required', 'string', 'numeric', 'digits:4', 'confirmed', 'different:password'],
+            'current_password' => ['required', 'string', 'min:8'],
+            'pin'              => ['required', 'string', 'numeric', 'digits:4', 'confirmed', 'different:current_password'],
         ];
     }
 }

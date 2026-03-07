@@ -13,11 +13,11 @@ class UpdateTransactionPinAction
      *
      * @throws ValidationException
      */
-    public function execute(User $user, string $password, string $newPin): User
+    public function execute(User $user, string $currentPassword, string $newPin): User
     {
-        if (!Hash::check($password, $user->password)) {
+        if (!Hash::check($currentPassword, $user->password)) {
             throw ValidationException::withMessages([
-                'password' => ['The current password is incorrect.'],
+                'current_password' => ['The current password is incorrect.'],
             ]);
         }
 

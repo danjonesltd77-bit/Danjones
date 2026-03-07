@@ -111,7 +111,7 @@ class AuthController extends Controller
     ) {
         $user = $request->user();
 
-        $action->execute($user, $request->password, $request->pin);
+        $action->execute($user, $request->current_password, $request->pin);
 
         return response()->json([
             'success' => true,

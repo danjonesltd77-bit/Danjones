@@ -12,7 +12,7 @@ it('allows an authenticated user to set a transaction pin', function () {
     /** @var User $user */
     $user = User::factory()->create();
 
-    $response = actingAs($user)->postJson('/api/user/transaction-pin', [
+    $response = actingAs($user)->postJson('/api/transaction-pin', [
         'pin' => '1234',
         'pin_confirmation' => '1234',
     ]);
@@ -28,7 +28,7 @@ it('allows an authenticated user to set a transaction pin', function () {
 });
 
 it('prevents an unauthenticated user from setting a transaction pin', function () {
-    $response = postJson('/api/user/transaction-pin', [
+    $response = postJson('/api/transaction-pin', [
         'pin' => '1234',
         'pin_confirmation' => '1234',
     ]);
@@ -40,7 +40,7 @@ it('validates that the pin is exactly 4 digits', function () {
     /** @var User $user */
     $user = User::factory()->create();
 
-    $response = actingAs($user)->postJson('/api/user/transaction-pin', [
+    $response = actingAs($user)->postJson('/api/transaction-pin', [
         'pin' => '12345',
         'pin_confirmation' => '12345',
     ]);
@@ -53,7 +53,7 @@ it('validates that the pin matches the confirmation', function () {
     /** @var User $user */
     $user = User::factory()->create();
 
-    $response = actingAs($user)->postJson('/api/user/transaction-pin', [
+    $response = actingAs($user)->postJson('/api/transaction-pin', [
         'pin' => '1234',
         'pin_confirmation' => '4321',
     ]);
