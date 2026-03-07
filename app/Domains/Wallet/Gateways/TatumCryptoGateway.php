@@ -5,6 +5,7 @@ namespace App\Domains\Wallet\Gateways;
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\SupportsWebhooksInterface;
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
+use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
 use App\Domains\Wallet\Services\TatumApiClient;
 use Illuminate\Support\Facades\Log;
@@ -27,17 +28,14 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
     public function generateAddress(int $currency_id): array
     {
         $hd_wallet = HdWallet::where('currency_id', $currency_id)->first();
+        $currency = Currency::where('id', $currency_id)->first();
 
         switch ($currency_id) {
             case 2:
-                $response = $this->apiClient->get("/bitcoin/address/{$hd_wallet->xpub}/{$hd_wallet->index}");
+            case 5:
+                $response = $this->apiClient->get("/{$currency->name}/address/{$hd_wallet->xpub}/{$hd_wallet->index}");
                 break;
-                // case 3:
-                //     $response = $this->apiClient->get("/ethereum/address/{$hd_wallet->xpub}/{$hd_wallet->index}");
-                //     break;
-                // case 4:
-                //     $response = $this->apiClient->get("/tron/address/{$hd_wallet->xpub}/{$hd_wallet->index}");
-                //     break;
+
             default:
                 throw new \Exception('Currency not available', 400);
         }
@@ -77,6 +75,10 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         } else {
             $type = 'INCOMING_INTERNAL_TX';
             $chain = $currency->parent->name;
+        }
+
+        if ($chain == "Dogecoin") {
+            $chain = "Doge";
         }
 
         $network = 'mainnet';

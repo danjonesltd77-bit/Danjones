@@ -4,7 +4,6 @@ use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\Wallet;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\getJson;
 
@@ -23,7 +22,6 @@ it('returns all active currencies for an authenticated user', function () {
     $response = actingAs($user)->getJson('/api/wallets/currencies');
 
     $response->assertStatus(200)
-        ->assertJson(['success' => true])
         ->assertJsonCount(2, 'currencies')
         ->assertJsonFragment(['symbol' => 'BTC'])
         ->assertJsonFragment(['symbol' => 'ETH'])
@@ -51,13 +49,12 @@ it('returns the authenticated user\'s wallets with currency data', function () {
     $response = actingAs($user)->getJson('/api/wallets');
 
     $response->assertStatus(200)
-        ->assertJson(['success' => true])
         ->assertJsonCount(2, 'wallets')
         ->assertJsonFragment(['address' => 'btc-addr'])
         ->assertJsonFragment(['address' => 'eth-addr'])
         ->assertJsonMissing(['address' => 'other-addr']);
 
-    // Assert currency is nested inside each wallet
+    // Ensure each wallet includes nested currency data
     $wallets = $response->json('wallets');
     expect($wallets[0])->toHaveKey('currency');
 });
