@@ -13,7 +13,9 @@ class WalletResource extends JsonResource
         return [
             'id'          => $this->id,
             'address'     => $this->address,
-            'balance'     => $this->balance,
+            'balance'     => $this->relationLoaded('currency')
+                ? number_format((float) $this->balance, $this->currency->decimal, '.', '')
+                : $this->balance,
             'status'      => $this->status,
             'currency_id' => $this->currency_id,
             'currency'    => new CurrencyResource($this->whenLoaded('currency')),
