@@ -15,7 +15,9 @@ class Wallet extends Model implements WalletAccountInterface
         'user_id',
         'currency_id',
         'address',
-        'type',
+        'balance',
+        'index',
+        'status',
     ];
 
     public function getWalletId(): string
