@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\User\Actions\RegisterUserAction;
+use App\Domains\User\Actions\SetTransactionPinAction;
+use App\Domains\User\Actions\UpdateTransactionPinAction;
 use App\Domains\Wallet\Actions\CreateDefaultWalletsAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\RegisterRequest;
+use App\Http\Requests\Api\SetTransactionPinRequest;
+use App\Http\Requests\Api\UpdateTransactionPinRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +88,34 @@ class AuthController extends Controller
             'success' => true,
             'user' => $user,
             // 'version' => SettingController::get('version')
+        ]);
+    }
+
+    public function setTransactionPin(
+        SetTransactionPinRequest $request,
+        SetTransactionPinAction $action
+    ) {
+        $user = $request->user();
+
+        $action->execute($user, $request->pin);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction PIN set successfully.',
+        ]);
+    }
+
+    public function updateTransactionPin(
+        UpdateTransactionPinRequest $request,
+        UpdateTransactionPinAction $action
+    ) {
+        $user = $request->user();
+
+        $action->execute($user, $request->password, $request->pin);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction PIN updated successfully.',
         ]);
     }
 }
