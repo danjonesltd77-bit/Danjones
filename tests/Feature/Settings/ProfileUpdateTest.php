@@ -8,7 +8,7 @@ uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 test('profile page is displayed', function () {
     $this->actingAs($user = User::factory()->create());
 
-    $this->get(route('profile.edit'))->assertOk();
+    $this->withoutVite()->get(route('profile.edit'))->assertOk();
 });
 
 test('profile information can be updated', function () {

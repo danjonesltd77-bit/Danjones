@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Notification;
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 test('reset password link screen can be rendered', function () {
-    $response = $this->get(route('password.request'));
+    $response = $this->withoutVite()->get(route('password.request'));
 
     $response->assertOk();
 });
@@ -30,7 +30,7 @@ test('reset password screen can be rendered', function () {
     $this->post(route('password.request'), ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-        $response = $this->get(route('password.reset', $notification->token));
+        $response = $this->withoutVite()->get(route('password.reset', $notification->token));
 
         $response->assertOk();
 

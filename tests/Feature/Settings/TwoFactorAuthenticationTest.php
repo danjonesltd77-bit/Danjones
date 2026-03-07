@@ -22,6 +22,7 @@ test('two factor settings page can be rendered', function () {
 
     $this->actingAs($user)
         ->withSession(['auth.password_confirmed_at' => time()])
+        ->withoutVite()
         ->get(route('two-factor.show'))
         ->assertOk()
         ->assertSee('Two-factor authentication')

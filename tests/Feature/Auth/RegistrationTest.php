@@ -3,7 +3,7 @@
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 test('registration screen can be rendered', function () {
-    $response = $this->get(route('register'));
+    $response = $this->withoutVite()->get(route('register'));
 
     $response->assertOk();
 });
