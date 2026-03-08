@@ -26,7 +26,7 @@ class LedgerService
      * and User Wallet gets CREDIT (increases liability/balance).
      */
     public function recordDeposit(
-        WalletAccountInterface $systemWallet,
+        ?WalletAccountInterface $systemWallet,
         WalletAccountInterface $userWallet,
         float $amount,
         float $usdAmount,
@@ -36,7 +36,9 @@ class LedgerService
         string $status = 'completed'
     ): void {
         DB::transaction(function () use ($systemWallet, $userWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
-            $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'debit', 'deposit', $reference, $description, $metadata, $status);
+            if ($systemWallet) {
+                $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'debit', 'deposit', $reference, $description, $metadata, $status);
+            }
             $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'credit', 'deposit', $reference, $description, $metadata, $status);
         });
     }

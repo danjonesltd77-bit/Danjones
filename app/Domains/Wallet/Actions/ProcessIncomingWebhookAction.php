@@ -136,17 +136,9 @@ class ProcessIncomingWebhookAction
             $coinUsd = (float) $this->marketDataGateway->getExchangeRate($currency->id);
             $usd = $verifiedAmount * $coinUsd;
 
-            $systemWallet = SystemWallet::where('currency_id', $currency->id)
-                ->where('type', SystemWalletType::DEPOSIT)
-                ->first();
-
-            if (!$systemWallet) {
-                throw new \Exception("System deposit wallet not configured for {$currency->symbol}");
-            }
-
             $ledgerService = app(LedgerService::class);
             $ledgerService->recordDeposit(
-                $systemWallet,
+                null,
                 $lockedWallet,
                 $verifiedAmount,
                 $usd,
