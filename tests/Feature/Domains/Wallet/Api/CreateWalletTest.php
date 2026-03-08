@@ -86,8 +86,11 @@ it('prevents creating a duplicate wallet for the same currency', function () {
         'currency_id' => $ngn->id,
     ]);
 
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['currency_id']);
+    $response->assertStatus(400)
+        ->assertJson([
+            'success' => false,
+            'message' => 'You already have a NGN wallet.',
+        ]);
 });
 
 it('returns 422 for an invalid currency_id', function () {

@@ -8,6 +8,7 @@ use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\LedgerService;
+use App\Enum\SystemWalletType;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -103,7 +104,7 @@ class ProcessIncomingWebhookAction
 
             // We need a system wallet to debit from
             // Assuming there is a SystemWallet type for the given currency
-            $systemWallet = SystemWallet::where('currency_id', $currency->id)->first();
+            $systemWallet = SystemWallet::where('currency_id', $currency->id)->where('type', SystemWalletType::DEPOSIT)->first();
 
             if (!$systemWallet) {
                 Log::error('System wallet not found for deposit', ['currency_id' => $currency->id]);
@@ -119,10 +120,9 @@ class ProcessIncomingWebhookAction
                 $usd,
                 $txHash, // using txHash as reference
                 "Deposit of {$verifiedAmount} {$currency->symbol}",
-                $payload // metadata
+                $payload, // metadata
+                'pending'
             );
-
-            // TODO: Also create a way to record the ngn/usd rates, possibly in metadata or separate fields if Transaction is updated.
         });
 
         if ($alreadyProcessed) {

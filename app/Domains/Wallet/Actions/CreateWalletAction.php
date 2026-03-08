@@ -28,9 +28,7 @@ class CreateWalletAction
 
         // Guard: prevent duplicate wallets per user per currency
         if ($user->wallets()->where('currency_id', $currencyId)->exists()) {
-            throw ValidationException::withMessages([
-                'currency_id' => ["You already have a {$currency->symbol} wallet."],
-            ]);
+            throw new Exception("You already have a {$currency->symbol} wallet.", 400);
         }
 
         // Fiat / non-crypto wallets (e.g. NGN) — no gateway call needed
@@ -51,11 +49,20 @@ class CreateWalletAction
 
         $response = $this->cryptoGateway->generateAddress($currencyId);
 
+        if (!$response) {
+            throw new Exception("Failed to generate address for currency {$currency->symbol}", 500);
+        }
+
+        $status = 'active';
+        if ($currency->is_gaspump == true) {
+            $status = 'pending';
+        }
+
         $wallet = $user->wallets()->create([
             'currency_id' => $currencyId,
             'address'     => $response['address'],
             'index'       => $hdWallet->index,
-            'status'      => 'active',
+            'status'      => $status,
         ]);
 
         $hdWallet->index += 1;

@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateWalletRequest;
 use App\Http\Resources\CurrencyResource;
 use App\Http\Resources\WalletResource;
+use App\Http\Responses\ApiResponse;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +24,7 @@ class WalletController extends Controller
         $currencies = Currency::where('is_active', true)->get();
 
         $resource = CurrencyResource::collection($currencies)->resolve();
-        return response()->json(['currencies' => $resource], 200);
+        return ApiResponse::success(['currencies' => $resource], 200);
     }
 
     /**
@@ -36,7 +38,7 @@ class WalletController extends Controller
             ->get();
 
         $resource = WalletResource::collection($wallets)->resolve();
-        return response()->json(['wallets' => $resource], 200);
+        return ApiResponse::success(['wallets' => $resource], 200);
     }
 
     /**
@@ -44,14 +46,20 @@ class WalletController extends Controller
      */
     public function create(CreateWalletRequest $request, CreateWalletAction $action): JsonResponse
     {
-        $wallet = DB::transaction(function () use ($request, $action) {
-            return $action->execute(
-                $request->user(),
-                $request->integer('currency_id'),
-            );
-        });
+        try {
+            $wallet = DB::transaction(function () use ($request, $action) {
+                return $action->execute(
+                    $request->user(),
+                    $request->integer('currency_id'),
+                );
+            });
+        } catch (Exception $e) {
+            $code = $e->getCode();
+            $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
+            return ApiResponse::error($e->getMessage(), $code);
+        }
 
         $resource = (new WalletResource($wallet->load('currency')))->resolve();
-        return response()->json(['wallet' => $resource], 201);
+        return ApiResponse::success(['wallet' => $resource], 201);
     }
 }

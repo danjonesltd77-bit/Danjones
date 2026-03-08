@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Domains\Wallet\Contracts;
+use App\Domains\Wallet\Models\Transaction;
 
 interface TransactionRepositoryInterface
 {
@@ -14,10 +15,10 @@ interface TransactionRepositoryInterface
         string $description,
         array $metadata = [],
         string $status = 'completed'
-    ): \App\Domains\Wallet\Models\Transaction;
+    ): Transaction;
 
     public function updateTransactionStatus(
-        \App\Domains\Wallet\Models\Transaction $transaction,
+        Transaction $transaction,
         string $newStatus
     ): void;
 }

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('type');
             $table->unsignedBigInteger('currency_id')->index();
             $table->string('address')->nullable();
-            $table->decimal('balance', 36, 18)->default(0);
+            $table->decimal('balance', 36, 8)->default(0);
             $table->integer('index')->default(0);
             $table->string('status')->default('active');
             $table->timestamps();

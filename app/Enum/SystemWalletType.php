@@ -7,8 +7,9 @@ enum SystemWalletType: string
     case HOT = 'hot';
     case COLD = 'cold';
     case FEE = 'fee';
-    case REVENUE = 'revenue';
+    case SELL = 'sell';
     case GAS = 'gas';
+    case DEPOSIT = 'deposit';
 
     public function label(): string
     {
@@ -16,8 +17,9 @@ enum SystemWalletType: string
             self::HOT => 'Hot Wallet',
             self::COLD => 'Cold Wallet',
             self::FEE => 'Fee Wallet',
-            self::REVENUE => 'Revenue Wallet',
+            self::SELL => 'Sell Wallet',
             self::GAS => 'Gas Wallet',
+            self::DEPOSIT => 'Deposit Wallet',
         };
     }
 }

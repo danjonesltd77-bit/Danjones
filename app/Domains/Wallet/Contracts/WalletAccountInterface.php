@@ -11,4 +11,6 @@ interface WalletAccountInterface
     public function getUserId(): int;
 
     public function getLedgerBalance(): float;
+
+    public function getCurrencyId(): int;
 }
