@@ -9,4 +9,6 @@ interface CryptoGatewayInterface
     public function generateAddress(int $currency_id): array;
 
     public function getTransactionDetails(string $txHash, int $currency_id): array;
+
+    public function isTransactionConfirmed(string $txHash, int $currency_id): bool;
 }

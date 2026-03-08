@@ -66,6 +66,28 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         return $response->json();
     }
 
+    public function isTransactionConfirmed(string $txHash, int $currency_id): bool
+    {
+        try {
+            $details = $this->getTransactionDetails($txHash, $currency_id);
+
+            // Typical UTXO (BTC, DOGE) has 'confirmations' > 0. EVM (ETH, TRX) has 'status' = true/1
+            if (isset($details['confirmations'])) {
+                return $details['confirmations'] >= 1;
+            }
+
+            if (isset($details['status'])) {
+                return $details['status'] === true || $details['status'] === 1;
+            }
+
+            // Fallback: if there's a blockHash or blockNumber, it's mined
+            return !empty($details['blockHash']) || !empty($details['blockNumber']);
+        } catch (\Exception $e) {
+            Log::error("Failed to check transaction confirmation for hash {$txHash}: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function subscribeToIncoming(WalletAccountInterface $wallet): bool
     {
         $currency = $wallet->currency;
