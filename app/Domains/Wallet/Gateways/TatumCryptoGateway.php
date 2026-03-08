@@ -69,43 +69,30 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
     public function isTransactionConfirmed(string $txHash, int $currency_id): bool
     {
         try {
-            switch ($currency_id) {
-                case 2: // Bitcoin
-                    $details = $this->getTransactionDetails($txHash, $currency_id);
+            $currency = Currency::find($currency_id);
 
-                    if (empty($details['blockNumber']) || $details['blockNumber'] == 0) {
-                        return false; // Not mined yet (0 confirmations)
-                    }
+            if ($currency->is_gaspump) {
+                return true;
+            } else {
+                $details = $this->getTransactionDetails($txHash, $currency_id);
 
-                    // Fetch the current latest block height from Tatum to calculate confirmations natively
-                    $infoResponse = $this->apiClient->get('/bitcoin/info');
+                if (empty($details['blockNumber']) || $details['blockNumber'] == 0) {
+                    return false; // Not mined yet (0 confirmations)
+                }
+                $currencyName = Str::lower($currency->name);
+                // Fetch the current latest block height from Tatum to calculate confirmations natively
+                $infoResponse = $this->apiClient->get("/{$currencyName}/info");
 
-                    if (! $infoResponse->successful() || empty($infoResponse->json()['blocks'])) {
-                        return false;
-                    }
+                if (! $infoResponse->successful() || empty($infoResponse->json()['blocks'])) {
+                    return false;
+                }
 
-                    $currentBlockHeight = $infoResponse->json()['blocks'];
-                    $confirmations = ($currentBlockHeight - $details['blockNumber']) + 1; // +1 includes the mined block itself
+                $currentBlockHeight = $infoResponse->json()['blocks'];
+                $confirmations = ($currentBlockHeight - $details['blockNumber']) + 1; // +1 includes the mined block itself
 
-                    return $confirmations >= 2;
-
-                case 3: // USDT
-                case 4: // TRON
-                case 5: // DOGE
-                default:
-                    // EVMs and UTXO generics fallback strategy (requires overriding when specific behavior needed)
-                    $details = $this->getTransactionDetails($txHash, $currency_id);
-
-                    if (isset($details['confirmations'])) {
-                        return $details['confirmations'] >= 1;
-                    }
-
-                    if (isset($details['status'])) {
-                        return $details['status'] === true || $details['status'] === 1;
-                    }
-
-                    return !empty($details['blockHash']) || !empty($details['blockNumber']);
+                return $confirmations >= 2;
             }
+
         } catch (\Exception $e) {
             Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency_id}: " . $e->getMessage());
             return false;
