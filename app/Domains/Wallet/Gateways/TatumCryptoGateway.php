@@ -82,7 +82,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
                 $currencyName = Str::lower($currency->name);
                 // Fetch the current latest block height from Tatum to calculate confirmations natively
                 $infoResponse = $this->apiClient->get("/{$currencyName}/info");
-
+ 
                 if (! $infoResponse->successful() || empty($infoResponse->json()['blocks'])) {
                     return false;
                 }
