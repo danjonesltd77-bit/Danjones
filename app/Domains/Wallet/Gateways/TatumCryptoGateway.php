@@ -3,6 +3,7 @@
 namespace App\Domains\Wallet\Gateways;
 
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
+use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Contracts\SupportsWebhooksInterface;
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Models\Currency;
@@ -11,7 +12,7 @@ use App\Domains\Wallet\Services\TatumApiClient;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInterface
+class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInterface, MarketDataGatewayInterface
 {
     private TatumApiClient $apiClient;
 
@@ -49,7 +50,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
 
     public function getTransactionDetails(string $txHash, int $currency_id): array
     {
-        
+
         switch ($currency_id) {
             case 2:
                 $response = $this->apiClient->get("/bitcoin/transaction/{$txHash}");
@@ -103,5 +104,49 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         }
 
         return $response->successful();
+    }
+
+    public function getExchangeRate(int $currency_id): float
+    {
+        $rate = 0;
+        switch ($currency_id) {
+            case 2:
+                // $res = Http::get('https://data.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+                // $rate = $res['price'];
+
+                // $res = Http::get('https://api.coinbase.com/v2/prices/spot?currency=USD');
+                // $res = $res->json();
+                // $rate = $res['data']['amount'];
+
+                $res = $this->apiClient->get('/tatum/rate/BTC?basePair=USD');
+                $res = $res->json();
+                $rate = $res['value'];
+                break;
+            case 3:
+                $res = $this->apiClient->get('/tatum/rate/USDT?basePair=USD');
+                $res = $res->json();
+                $rate = $res['value'];
+                break;
+            case 4:
+                $res = $this->apiClient->get('/tatum/rate/TRON?basePair=USD');
+                $res = $res->json();
+                $rate = $res['value'];
+                break;
+            case 5:
+                $res = $this->apiClient->get('/tatum/rate/DOGE?basePair=USD');
+                $res = $res->json();
+                $rate = $res['value'];
+                break;
+
+            default:
+                $currency = Currency::find($currency_id);
+
+                $res = $this->apiClient->get("/tatum/rate/$currency->symbol?basePair=USD");
+                $res = $res->json();
+                $rate = $res['value'];
+                break;
+        }
+
+        return $rate;
     }
 }

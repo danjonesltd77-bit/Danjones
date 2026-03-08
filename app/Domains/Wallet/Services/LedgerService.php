@@ -28,13 +28,15 @@ class LedgerService
         WalletAccountInterface $systemWallet,
         WalletAccountInterface $userWallet,
         float $amount,
+        float $usdAmount,
         string $reference,
         string $description,
-        array $metadata = []
+        array $metadata = [],
+        string $status = 'completed'
     ): void {
-        DB::transaction(function () use ($systemWallet, $userWallet, $amount, $reference, $description, $metadata) {
-            $this->repository->recordEntry($systemWallet, $amount, 'debit', 'deposit', $reference, $description, $metadata);
-            $this->repository->recordEntry($userWallet, $amount, 'credit', 'deposit', $reference, $description, $metadata);
+        DB::transaction(function () use ($systemWallet, $userWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
+            $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'debit', 'deposit', $reference, $description, $metadata, $status);
+            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'credit', 'deposit', $reference, $description, $metadata, $status);
         });
     }
 
@@ -45,13 +47,15 @@ class LedgerService
         WalletAccountInterface $userWallet,
         WalletAccountInterface $systemWallet,
         float $amount,
+        float $usdAmount,
         string $reference,
         string $description,
-        array $metadata = []
+        array $metadata = [],
+        string $status = 'completed'
     ): void {
-        DB::transaction(function () use ($userWallet, $systemWallet, $amount, $reference, $description, $metadata) {
-            $this->repository->recordEntry($userWallet, $amount, 'debit', 'withdrawal', $reference, $description, $metadata);
-            $this->repository->recordEntry($systemWallet, $amount, 'credit', 'withdrawal', $reference, $description, $metadata);
+        DB::transaction(function () use ($userWallet, $systemWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
+            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'debit', 'withdrawal', $reference, $description, $metadata, $status);
+            $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'credit', 'withdrawal', $reference, $description, $metadata, $status);
         });
     }
 
@@ -62,13 +66,30 @@ class LedgerService
         WalletAccountInterface $userWallet,
         WalletAccountInterface $systemFeeWallet,
         float $amount,
+        float $usdAmount,
         string $reference,
         string $description,
-        array $metadata = []
+        array $metadata = [],
+        string $status = 'completed'
     ): void {
-        DB::transaction(function () use ($userWallet, $systemFeeWallet, $amount, $reference, $description, $metadata) {
-            $this->repository->recordEntry($userWallet, $amount, 'debit', 'fee', $reference, $description, $metadata);
-            $this->repository->recordEntry($systemFeeWallet, $amount, 'credit', 'fee', $reference, $description, $metadata);
+        DB::transaction(function () use ($userWallet, $systemFeeWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
+            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'debit', 'fee', $reference, $description, $metadata, $status);
+            $this->repository->recordEntry($systemFeeWallet, $amount, $usdAmount, 'credit', 'fee', $reference, $description, $metadata, $status);
+        });
+    }
+
+    /**
+     * Updates the status of all transactions associated with a given reference.
+     * Use this to move double-entry pairs from "pending" to "completed".
+     */
+    public function updateTransactionStatus(string $reference, string $newStatus): void
+    {
+        DB::transaction(function () use ($reference, $newStatus) {
+            $transactions = \App\Domains\Wallet\Models\Transaction::where('reference', $reference)->get();
+
+            foreach ($transactions as $transaction) {
+                $this->repository->updateTransactionStatus($transaction, $newStatus);
+            }
         });
     }
 }

@@ -100,7 +100,6 @@ class ProcessIncomingWebhookAction
 
             $coinUsd = (float) $this->marketDataGateway->getExchangeRate($currency->id);
             $usd = $verifiedAmount * $coinUsd;
-            $ngn = $usd * $this->marketDataGateway->getUsdNgnRate();
 
             // We need a system wallet to debit from
             // Assuming there is a SystemWallet type for the given currency
@@ -117,6 +116,7 @@ class ProcessIncomingWebhookAction
                 $systemWallet,
                 $wallet,
                 $verifiedAmount,
+                $usd,
                 $txHash, // using txHash as reference
                 "Deposit of {$verifiedAmount} {$currency->symbol}",
                 $payload // metadata
