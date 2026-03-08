@@ -10,4 +10,9 @@ class Currency extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    public function parent()
+    {
+        return $this->belongsTo(Currency::class, 'parent_id');
+    }
 }

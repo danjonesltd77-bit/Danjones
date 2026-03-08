@@ -2,13 +2,17 @@
 
 namespace App\Domains\Wallet\Contracts;
 
+use App\Domains\Wallet\Models\Currency;
+use App\Domains\Wallet\Models\HdWallet;
+use App\Domains\Wallet\Models\SystemWallet;
+
 interface CryptoGatewayInterface
 {
     public function getBalance(string $identifier): float;
 
-    public function generateAddress(\App\Domains\Wallet\Models\Currency $currency, ?\App\Domains\Wallet\Models\HdWallet $hdWallet, ?\App\Domains\Wallet\Models\SystemWallet $gasWallet = null): array;
+    public function generateAddress(Currency $currency, HdWallet $hdWallet, ?string $chain = null, ?SystemWallet $gasWallet = null): string;
 
-    public function getTransactionDetails(string $txHash, int $currency_id): array;
+    public function getTransactionDetails(string $txHash, Currency $currency): array;
 
-    public function isTransactionConfirmed(string $txHash, int $currency_id): bool;
+    public function isTransactionConfirmed(string $txHash, Currency $currency): bool;
 }

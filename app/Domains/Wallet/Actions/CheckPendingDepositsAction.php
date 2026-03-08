@@ -40,7 +40,7 @@ class CheckPendingDepositsAction
                 }
 
                 // Call Gateway Blockchain Confirmation validation
-                $isConfirmed = $this->cryptoGateway->isTransactionConfirmed($deposit->reference, $deposit->currency_id);
+                $isConfirmed = $this->cryptoGateway->isTransactionConfirmed($deposit->reference, $currency);
 
                 if ($isConfirmed) {
                     $this->ledgerService->updateTransactionStatus($deposit->reference, TransactionStatus::COMPLETED->value);

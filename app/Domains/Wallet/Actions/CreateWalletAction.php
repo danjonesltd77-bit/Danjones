@@ -6,7 +6,9 @@ use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\SupportsWebhooksInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
+use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
+use App\Enum\SystemWalletType;
 use App\Models\User;
 use Exception;
 use Illuminate\Validation\ValidationException;
@@ -48,15 +50,20 @@ class CreateWalletAction
         }
 
         $gasWallet = null;
+        $chain = $currency->token_currency;
         if ($currency->is_gaspump) {
-            $gasWallet = \App\Domains\Wallet\Models\SystemWallet::where('currency_id', $currencyId)
-                ->where('type', \App\Enum\SystemWalletType::GAS)
+            $gasWallet = SystemWallet::where('currency_id', $currencyId)
+                ->where('type', SystemWalletType::GAS)
                 ->first();
         }
 
-        $response = $this->cryptoGateway->generateAddress($currency, $hdWallet, $gasWallet);
+        if($currency->parent_id != null){
+            $chain = $currency->parent->token_currency;
+        }
 
-        if (!$response) {
+        $address = $this->cryptoGateway->generateAddress($currency, $hdWallet, $chain, $gasWallet);
+
+        if (!$address) {
             throw new Exception("Failed to generate address for currency {$currency->symbol}", 500);
         }
 
@@ -67,7 +74,7 @@ class CreateWalletAction
 
         $wallet = $user->wallets()->create([
             'currency_id' => $currencyId,
-            'address'     => $response['address'],
+            'address'     => $address,
             'index'       => $hdWallet->index,
             'status'      => $status,
         ]);

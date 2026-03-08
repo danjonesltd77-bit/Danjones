@@ -8,6 +8,7 @@ use App\Domains\Wallet\Contracts\SupportsWebhooksInterface;
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
+use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\TatumApiClient;
 use App\Enum\SystemWalletType;
 use Illuminate\Support\Facades\Log;
@@ -27,40 +28,42 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         return 0.0;
     }
 
-    public function generateAddress(Currency $currency, ?HdWallet $hdWallet, ?\App\Domains\Wallet\Models\SystemWallet $gasWallet = null): array
+    public function generateAddress(Currency $currency, HdWallet $hdWallet, ?string $chain = null, ?SystemWallet $gasWallet = null): string
     {
         if ($currency->is_gaspump) {
             if (!$gasWallet) {
                 throw new \Exception("System gas wallet not configured for {$currency->symbol}", 500);
             }
+            $response = $this->apiClient->post("/gas-pump", [
+                'chain' => $chain,
+                'owner' => $gasWallet->address,
+                'from' => $hdWallet->index,
+                'to' => $hdWallet->index,
+            ], is_gaspump: true);
 
-            // TODO: Tatum Gas Pump specific implementation using $gasWallet->contract_address or equivalent
-            // $response = $this->apiClient->post('/gas-pump', [...]);
+            if (! $response->successful()) {
+                Log::error('Failed to generate crypto address', ['response' => $response->json()]);
+                throw new \Exception('Failed to generate crypto address', 500);
+            }
 
+            return $response->json()[0];
         } else {
             if (!$hdWallet) {
                 throw new \Exception("HD Wallet missing for {$currency->symbol}", 500);
             }
             $response = $this->apiClient->get("/{$currency->name}/address/{$hdWallet->xpub}/{$hdWallet->index}");
-        }
+           
+            if (! $response->successful()) {
+                throw new \Exception($response->json()['message'] ?? 'Failed to generate crypto address', $response->status() ?: 500);
+            }
 
-        if (! $response->successful()) {
-            throw new \Exception($response->json()['message'] ?? 'Failed to generate crypto address', $response->status() ?: 500);
+            return $response->json()['address'];
         }
-
-        return $response->json();
     }
 
-    public function getTransactionDetails(string $txHash, int $currency_id): array
+    public function getTransactionDetails(string $txHash, Currency $currency): array
     {
-
-        switch ($currency_id) {
-            case 2:
-                $response = $this->apiClient->get("/bitcoin/transaction/{$txHash}");
-                break;
-            default:
-                throw new \Exception('Currency not available', 400);
-        }
+        $response = $this->apiClient->get("/{$currency->name}/transaction/{$txHash}", is_gaspump: $currency->is_gaspump);
 
         if (! $response->successful()) {
             throw new \Exception($response->json()['message'] ?? 'Failed to get transaction details', $response->status() ?: 500);
@@ -69,15 +72,13 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         return $response->json();
     }
 
-    public function isTransactionConfirmed(string $txHash, int $currency_id): bool
+    public function isTransactionConfirmed(string $txHash, Currency $currency): bool
     {
         try {
-            $currency = Currency::find($currency_id);
-
             if ($currency->is_gaspump) {
                 return true;
             } else {
-                $details = $this->getTransactionDetails($txHash, $currency_id);
+                $details = $this->getTransactionDetails($txHash, $currency);
 
                 if (empty($details['blockNumber']) || $details['blockNumber'] == 0) {
                     return false; // Not mined yet (0 confirmations)
@@ -96,7 +97,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
                 return $confirmations >= 2;
             }
         } catch (\Exception $e) {
-            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency_id}: " . $e->getMessage());
+            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: " . $e->getMessage());
             return false;
         }
     }
@@ -131,7 +132,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
             ],
         ];
 
-        $response = $this->apiClient->post('/subscription', $payload, 'v4');
+        $response = $this->apiClient->post('/subscription', $payload, 'v4', is_gaspump: $currency->is_gaspump);
 
         if (! $response->successful()) {
             Log::error('Failed to subscribe to incoming transactions', ['response' => $response->json()]);

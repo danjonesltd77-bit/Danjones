@@ -41,53 +41,87 @@ class ProcessIncomingWebhookAction
             return ['success' => false, 'message' => 'Wallet not found.'];
         }
 
-        $currency = $wallet->currency;
-        $user = $wallet->user;
-        
+        // Delegate handling to currency-specific logic
+        return match ($wallet->currency_id) {
+            2 => $this->handleBitcoinDeposit($wallet, $txHash, $payload),
+            3 => $this->handleTronDeposit($wallet, $txHash, $payload),
+            default => $this->handleGenericDeposit($wallet, $txHash, $payload),
+        };
+    }
 
-        if ($currency->gaspump == true) {
-            return ['success' => false, 'message' => 'Transaction not compatible with this wallet'];
+    /**
+     * Specialized handler for Bitcoin (ID 2).
+     */
+    private function handleBitcoinDeposit(Wallet $wallet, string $txHash, array $payload): array
+    {
+        $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
+        if (!$details || !isset($details['blockNumber'])) {
+            return ['success' => false, 'message' => 'BTC Transaction not found or not yet confirmed.'];
         }
 
-        if (!$currency || !$user) {
-            Log::warning('Subscription missing wallet relations', ['wallet_id' => $wallet->id, 'txHash' => $txHash]);
-            return ['success' => false, 'message' => 'Wallet is not linked properly.'];
-        }
-        
-        $transactionDetails = $this->cryptoGateway->getTransactionDetails($txHash, $currency->id);
-        if (!$transactionDetails || !isset($transactionDetails['blockNumber'])) {
-            Log::warning('Transaction not found or not yet confirmed', ['txHash' => $txHash, 'currency_id' => $currency->id]);
-            return ['success' => false, 'message' => 'Transaction not confirmed.'];
+        $amount = $this->extractBitcoinAmount($details, $wallet->address);
+
+        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, 'pending');
+    }
+
+    /**
+     * Specialized handler for TRON (ID 3).
+     */
+    private function handleTronDeposit(Wallet $wallet, string $txHash, array $payload): array
+    {
+        $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
+
+        if (!$details || !isset($details['blockNumber'])) {
+            return ['success' => false, 'message' => 'TRON Transaction not found or not yet confirmed.'];
         }
 
-        $verifiedAmount = $this->extractIncomingAmount($transactionDetails, $address, $currency->id);
+        $amount = $this->extractTronAmount($details, $wallet->address);
+
+        if (isset($payload['amount'])) {
+            $payload['amount'] = (float) $payload['amount'] * 1000000;
+        }
+
+        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, 'completed');
+    }
+
+    /**
+     * Specialized handler for Generic deposits (EVM, Tokens, etc).
+     */
+    private function handleGenericDeposit(Wallet $wallet, string $txHash, array $payload): array
+    {
+        $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
+        if (!$details || !isset($details['blockNumber'])) {
+            return ['success' => false, 'message' => 'Transaction not found or not yet confirmed.'];
+        }
+
+        $amount = $this->extractGenericAmount($details);
+
+        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, 'pending');
+    }
+
+    /**
+     * Core business logic to validate amount and persist to ledger.
+     */
+    private function processValidatedDeposit(Wallet $wallet, float $verifiedAmount, string $txHash, array $payload, string $status = 'pending'): array
+    {
         if ($verifiedAmount <= 0) {
-            Log::warning('Transaction output did not match receiving address', [
-                'txHash' => $txHash,
-                'address' => $address,
-                'currency_id' => $currency->id
-            ]);
-            return ['success' => false, 'message' => 'No valid incoming amount found for receiving wallet.'];
+            Log::warning('Zero amount verified for deposit', ['txHash' => $txHash, 'wallet' => $wallet->id]);
+            return ['success' => false, 'message' => 'No valid incoming amount found.'];
         }
 
         $reportedAmount = (float) ($payload['amount'] ?? 0);
         if ($reportedAmount > 0 && abs($reportedAmount - $verifiedAmount) > 0.00000001) {
-            Log::warning('Reported amount mismatch', [
-                'txHash' => $txHash,
-                'reported' => $reportedAmount,
-                'verified' => $verifiedAmount,
-                'wallet_id' => $wallet->id
-            ]);
+            Log::warning('Reported amount mismatch', ['reported' => $reportedAmount, 'verified' => $verifiedAmount]);
             return ['success' => false, 'message' => 'Reported amount does not match on-chain amount.'];
         }
 
         $alreadyProcessed = false;
 
-        DB::transaction(function () use ($wallet, $user, $currency, $txHash, $verifiedAmount, &$alreadyProcessed, $payload) {
-            // Lock the wallet for update to prevent race conditions
+        DB::transaction(function () use ($wallet, $txHash, $verifiedAmount, &$alreadyProcessed, $payload, $status) {
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+            $currency = $wallet->currency;
 
-            $existingDeposit = Transaction::where('user_id', $user->id)
+            $existingDeposit = Transaction::where('user_id', $wallet->user_id)
                 ->where('currency_id', $currency->id)
                 ->where('reference', $txHash)
                 ->where('action', 'deposit')
@@ -102,36 +136,30 @@ class ProcessIncomingWebhookAction
             $coinUsd = (float) $this->marketDataGateway->getExchangeRate($currency->id);
             $usd = $verifiedAmount * $coinUsd;
 
-            // We need a system wallet to debit from
-            // Assuming there is a SystemWallet type for the given currency
-            $systemWallet = SystemWallet::where('currency_id', $currency->id)->where('type', SystemWalletType::DEPOSIT)->first();
+            $systemWallet = SystemWallet::where('currency_id', $currency->id)
+                ->where('type', SystemWalletType::DEPOSIT)
+                ->first();
 
             if (!$systemWallet) {
-                Log::error('System wallet not found for deposit', ['currency_id' => $currency->id]);
-                // Depending on requirements, we could either throw an exception or create it on the fly
-                throw new \Exception("System wallet not configured for this currency.");
+                throw new \Exception("System deposit wallet not configured for {$currency->symbol}");
             }
 
             $ledgerService = app(LedgerService::class);
             $ledgerService->recordDeposit(
                 $systemWallet,
-                $wallet,
+                $lockedWallet,
                 $verifiedAmount,
                 $usd,
-                $txHash, // using txHash as reference
+                $txHash,
                 "Deposit of {$verifiedAmount} {$currency->symbol}",
-                $payload, // metadata
-                'pending'
+                $payload,
+                $status
             );
         });
 
         if ($alreadyProcessed) {
             return ['success' => true, 'message' => 'Deposit already processed.'];
         }
-
-        $title = $wallet->currency->name . ' incoming deposit';
-        $message = 'Incoming deposit of ' . $verifiedAmount . ' ' . $wallet->currency->symbol;
-        // NotificationController::sendNotification($user->id, $title, $message);
 
         return [
             'success' => true,
@@ -142,16 +170,11 @@ class ProcessIncomingWebhookAction
     }
 
     /**
-     * Helper to extract the exact amount sent to our specific address
-     * from the transaction details.
+     * Extract Bitcoin amount from UTXO outputs.
      */
-    private function extractIncomingAmount(array $transactionDetails, string $address, int $currencyId): float
+    private function extractBitcoinAmount(array $details, string $address): float
     {
-        if ($currencyId !== 2) {
-            return (float) ($transactionDetails['amount'] ?? 0);
-        }
-
-        $outputs = $transactionDetails['outputs'] ?? [];
+        $outputs = $details['outputs'] ?? [];
         if (!is_array($outputs) || empty($outputs)) {
             return 0;
         }
@@ -161,14 +184,40 @@ class ProcessIncomingWebhookAction
             if (($output['address'] ?? null) !== $address) {
                 continue;
             }
-
             $satoshis += (float) ($output['value'] ?? 0);
         }
 
-        if ($satoshis <= 0) {
+        return $satoshis > 0 ? $satoshis / 100000000 : 0;
+    }
+
+    /**
+     * Extract TRON amount from raw transaction data.
+     */
+    private function extractTronAmount(array $details, string $address): float
+    {
+        $contracts = $details['rawData']['contract'] ?? [];
+        if (!is_array($contracts)) {
             return 0;
         }
 
-        return $satoshis / 100000000;
+        $trx = 0;
+        foreach ($contracts as $contract) {
+            $value = $contract['parameter']['value'] ?? [];
+
+            // Native TRX transfer or TRC10
+            if (isset($value['toAddressBase58']) && $value['toAddressBase58'] === $address) {
+                $trx += (float) ($value['amount'] ?? 0);
+            }
+        }
+
+        return $trx > 0 ? $trx : 0;
+    }
+
+    /**
+     * Fallback for Generic amounts (EVM/Tokens) where Tatum provides top-level amount.
+     */
+    private function extractGenericAmount(array $details): float
+    {
+        return (float) ($details['amount'] ?? 0);
     }
 }
