@@ -12,13 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 class CheckPendingDepositsAction
 {
-    protected CryptoGatewayInterface $cryptoGateway;
-    protected LedgerService $ledgerService;
-
-    public function __construct(CryptoGatewayInterface $cryptoGateway, LedgerService $ledgerService)
-    {
-        $this->cryptoGateway = $cryptoGateway;
-        $this->ledgerService = $ledgerService;
+    public function __construct(private CryptoGatewayInterface $cryptoGateway, private LedgerService $ledgerService)
+    {   
     }
 
     public function execute(): void

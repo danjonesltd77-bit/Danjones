@@ -4,6 +4,7 @@ namespace App\Domains\Wallet\Services;
 
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Contracts\TransactionRepositoryInterface;
+use App\Domains\Wallet\Models\Transaction;
 use App\Enum\TransactionAction;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -85,7 +86,7 @@ class LedgerService
     public function updateTransactionStatus(string $reference, string $newStatus): void
     {
         DB::transaction(function () use ($reference, $newStatus) {
-            $transactions = \App\Domains\Wallet\Models\Transaction::where('reference', $reference)->get();
+            $transactions = Transaction::where('reference', $reference)->get();
 
             foreach ($transactions as $transaction) {
                 $this->repository->updateTransactionStatus($transaction, $newStatus);

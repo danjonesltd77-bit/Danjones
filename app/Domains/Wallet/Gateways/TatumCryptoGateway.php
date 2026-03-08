@@ -80,8 +80,19 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
                 return $details['status'] === true || $details['status'] === 1;
             }
 
-            // Fallback: if there's a blockHash or blockNumber, it's mined
-            return !empty($details['blockHash']) || !empty($details['blockNumber']);
+            // For Tatum BTC, the response contains 'blockNumber' and 'block' (hash)
+            if (isset($details['blockNumber']) && $details['blockNumber'] > 0) {
+                // It has been mined into a block (at least 1 confirmation)
+                // You can add logic here if you strictly require 2, 3, or more confirmations by querying the current network block height.
+                return true;
+            }
+
+            if (!empty($details['block'])) {
+                return true;
+            }
+
+            // Generic fallback
+            return !empty($details['blockHash']);
         } catch (\Exception $e) {
             Log::error("Failed to check transaction confirmation for hash {$txHash}: " . $e->getMessage());
             return false;
