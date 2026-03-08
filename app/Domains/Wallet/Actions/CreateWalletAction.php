@@ -47,7 +47,14 @@ class CreateWalletAction
             throw new Exception("HD Wallet not found for currency {$currency->symbol}", 500);
         }
 
-        $response = $this->cryptoGateway->generateAddress($currencyId);
+        $gasWallet = null;
+        if ($currency->is_gaspump) {
+            $gasWallet = \App\Domains\Wallet\Models\SystemWallet::where('currency_id', $currencyId)
+                ->where('type', \App\Enum\SystemWalletType::GAS)
+                ->first();
+        }
+
+        $response = $this->cryptoGateway->generateAddress($currency, $hdWallet, $gasWallet);
 
         if (!$response) {
             throw new Exception("Failed to generate address for currency {$currency->symbol}", 500);

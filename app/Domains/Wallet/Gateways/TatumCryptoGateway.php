@@ -9,6 +9,7 @@ use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
 use App\Domains\Wallet\Services\TatumApiClient;
+use App\Enum\SystemWalletType;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -26,19 +27,21 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         return 0.0;
     }
 
-    public function generateAddress(int $currency_id): array
+    public function generateAddress(Currency $currency, ?HdWallet $hdWallet, ?\App\Domains\Wallet\Models\SystemWallet $gasWallet = null): array
     {
-        $hd_wallet = HdWallet::where('currency_id', $currency_id)->first();
-        $currency = Currency::where('id', $currency_id)->first();
+        if ($currency->is_gaspump) {
+            if (!$gasWallet) {
+                throw new \Exception("System gas wallet not configured for {$currency->symbol}", 500);
+            }
 
-        switch ($currency_id) {
-            case 2:
-            case 5:
-                $response = $this->apiClient->get("/{$currency->name}/address/{$hd_wallet->xpub}/{$hd_wallet->index}");
-                break;
+            // TODO: Tatum Gas Pump specific implementation using $gasWallet->contract_address or equivalent
+            // $response = $this->apiClient->post('/gas-pump', [...]);
 
-            default:
-                throw new \Exception('Currency not available', 400);
+        } else {
+            if (!$hdWallet) {
+                throw new \Exception("HD Wallet missing for {$currency->symbol}", 500);
+            }
+            $response = $this->apiClient->get("/{$currency->name}/address/{$hdWallet->xpub}/{$hdWallet->index}");
         }
 
         if (! $response->successful()) {
@@ -82,7 +85,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
                 $currencyName = Str::lower($currency->name);
                 // Fetch the current latest block height from Tatum to calculate confirmations natively
                 $infoResponse = $this->apiClient->get("/{$currencyName}/info");
- 
+
                 if (! $infoResponse->successful() || empty($infoResponse->json()['blocks'])) {
                     return false;
                 }
@@ -92,7 +95,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
 
                 return $confirmations >= 2;
             }
-
         } catch (\Exception $e) {
             Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency_id}: " . $e->getMessage());
             return false;

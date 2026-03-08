@@ -6,7 +6,7 @@ interface CryptoGatewayInterface
 {
     public function getBalance(string $identifier): float;
 
-    public function generateAddress(int $currency_id): array;
+    public function generateAddress(\App\Domains\Wallet\Models\Currency $currency, ?\App\Domains\Wallet\Models\HdWallet $hdWallet, ?\App\Domains\Wallet\Models\SystemWallet $gasWallet = null): array;
 
     public function getTransactionDetails(string $txHash, int $currency_id): array;
 

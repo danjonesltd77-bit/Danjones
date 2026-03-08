@@ -56,7 +56,9 @@ it('creates a crypto wallet by calling the gateway', function () {
     $this->gatewayMock
         ->shouldReceive('generateAddress')
         ->once()
-        ->with($btc->id)
+        ->withArgs(function ($c, $h, $g) use ($btc) {
+            return $c->id === $btc->id;
+        })
         ->andReturn(['address' => 'btc-test-address']);
 
     $response = actingAs($user)->postJson('/api/wallets/create', [
