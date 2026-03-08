@@ -44,7 +44,7 @@ class CreateWalletAction
         $hdWallet = HdWallet::where('currency_id', $currencyId)->first();
 
         if (! $hdWallet) {
-            throw new Exception("HD Wallet not found for currency {$currency->symbol}", 400);
+            throw new Exception("HD Wallet not found for currency {$currency->symbol}", 500);
         }
 
         $response = $this->cryptoGateway->generateAddress($currencyId);
