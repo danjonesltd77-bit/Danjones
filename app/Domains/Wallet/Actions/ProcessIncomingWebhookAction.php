@@ -41,62 +41,28 @@ class ProcessIncomingWebhookAction
             return ['success' => false, 'message' => 'Wallet not found.'];
         }
 
-        // Delegate handling to currency-specific logic
-        return match ($wallet->currency_id) {
-            2 => $this->handleBitcoinDeposit($wallet, $txHash, $payload),
-            3 => $this->handleTronDeposit($wallet, $txHash, $payload),
-            default => $this->handleGenericDeposit($wallet, $txHash, $payload),
-        };
-    }
-
-    /**
-     * Specialized handler for Bitcoin (ID 2).
-     */
-    private function handleBitcoinDeposit(Wallet $wallet, string $txHash, array $payload): array
-    {
-        $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
-        if (!$details || !isset($details['blockNumber'])) {
-            return ['success' => false, 'message' => 'BTC Transaction not found or not yet confirmed.'];
-        }
-
-        $amount = $this->extractBitcoinAmount($details, $wallet->address);
-
-        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, 'pending');
-    }
-
-    /**
-     * Specialized handler for TRON (ID 3).
-     */
-    private function handleTronDeposit(Wallet $wallet, string $txHash, array $payload): array
-    {
         $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
 
-        if (!$details || !isset($details['blockNumber'])) {
-            return ['success' => false, 'message' => 'TRON Transaction not found or not yet confirmed.'];
-        }
-
-        $amount = $this->extractTronAmount($details, $wallet->address);
-
-        if (isset($payload['amount'])) {
-            $payload['amount'] = (float) $payload['amount'] * 1000000;
-        }
-
-        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, 'completed');
-    }
-
-    /**
-     * Specialized handler for Generic deposits (EVM, Tokens, etc).
-     */
-    private function handleGenericDeposit(Wallet $wallet, string $txHash, array $payload): array
-    {
-        $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
-        if (!$details || !isset($details['blockNumber'])) {
+        // General validity check for all currencies
+        if (!$details || !($details['blockNumber'] ?? $details['status'] ?? false)) {
             return ['success' => false, 'message' => 'Transaction not found or not yet confirmed.'];
         }
 
-        $amount = $this->extractGenericAmount($details);
+        // Determine amount and status based on currency
+        [$amount, $status] = match ($wallet->currency_id) {
+            2 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
+            5 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
+            3 => [$this->extractTronAmount($details, $wallet->address), 'completed'],
+            7 => [$this->extractEthereumAmount($details), 'completed'],
+            default => [$this->extractGenericAmount($details), 'pending'],
+        };
 
-        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, 'pending');
+        // TRON specific adjustment (Sun scaling)
+        if ($wallet->currency_id === 3 && isset($payload['amount'])) {
+            $payload['amount'] = (float) $payload['amount'] * 1000000;
+        }
+
+        return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, $status);
     }
 
     /**
@@ -203,6 +169,31 @@ class ProcessIncomingWebhookAction
         }
 
         return $trx > 0 ? $trx : 0;
+    }
+
+    /**
+     * Extract Ethereum amount from transaction details.
+     * Handles both Tatum's parsed 'amount' and raw 'value' (Wei).
+     */
+    private function extractEthereumAmount(array $details): float
+    {
+        // If Tatum already parsed the amount into ETH
+        if (isset($details['amount'])) {
+            return (float) $details['amount'];
+        }
+
+        // If we have raw 'value' in Wei (standard for Ethereum JSON-RPC responses)
+        if (isset($details['value'])) {
+            $value = $details['value'];
+            
+            // Convert Wei to ETH (18 decimals)
+            // Using bcdiv if available for precision, or standard float division
+            if (is_numeric($value)) {
+                return (float) $value / 1000000000000000000;
+            }
+        }
+
+        return 0.0;
     }
 
     /**

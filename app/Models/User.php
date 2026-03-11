@@ -88,4 +88,15 @@ class User extends Authenticatable
     {
         return $this->hasOne(Wallet::class)->where('currency_id', 2);
     }
+
+    /**
+     * Get a wallet for a particular currency (ID or symbol).
+     */
+    public function wallet(int|string $currency): ?Wallet
+    {
+        return $this->wallets()
+            ->when(is_int($currency), fn($q) => $q->where('currency_id', $currency))
+            ->when(is_string($currency), fn($q) => $q->whereHas('currency', fn($c) => $c->where('symbol', $currency)))
+            ->first();
+    }
 }

@@ -12,6 +12,7 @@ use App\Http\Responses\ApiResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
@@ -39,6 +40,18 @@ class WalletController extends Controller
 
         $resource = WalletResource::collection($wallets)->resolve();
         return ApiResponse::success(['wallets' => $resource], 200);
+    }
+
+    function wallet(int $currencyId)
+    {
+        $wallet = Auth::user()->wallet($currencyId);
+
+        if (!$wallet) { 
+            return ApiResponse::error('Wallet not found', 404);
+        }
+
+        $resource = (new WalletResource($wallet))->resolve();
+        return ApiResponse::success(['wallet' => $resource], 200);
     }
 
     /**
