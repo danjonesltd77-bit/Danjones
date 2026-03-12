@@ -57,11 +57,20 @@ class CreateWalletAction
                 ->first();
         }
 
-        if($currency->parent_id != null){
+        if ($currency->parent_id != null) {
             $chain = $currency->parent->token_currency;
+
+            $parentCurrency = Currency::findOrFail($currency->parent_id);
+
+            if (!$user->wallets()->where('currency_id', $parentCurrency->id)->exists()) {
+                throw new Exception("Please create a {$parentCurrency->name} wallet first.", 400);
+            }
+
+            $address = $user->wallets()->where('currency_id', $parentCurrency->id)->first()->address;
+        } else{
+            $address = $this->cryptoGateway->generateAddress($currency, $hdWallet, $chain, $gasWallet);
         }
 
-        $address = $this->cryptoGateway->generateAddress($currency, $hdWallet, $chain, $gasWallet);
 
         if (!$address) {
             throw new Exception("Failed to generate address for currency {$currency->symbol}", 500);

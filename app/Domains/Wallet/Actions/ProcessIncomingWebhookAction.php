@@ -6,6 +6,7 @@ use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\Transaction;
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
+use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
@@ -30,12 +31,13 @@ class ProcessIncomingWebhookAction
         $txHash = $payload['hash'] ?? $payload['txId'] ?? null;
         $address = $payload['address'] ?? null;
 
+        $currencyId = Currency::where('token_currency', $payload['currency'])->first()->id;
         if (!$txHash || !$address) {
             Log::warning('Subscription missing required fields', ['payload' => $payload]);
             return ['success' => false, 'message' => 'Invalid subscription payload.'];
         }
 
-        $wallet = Wallet::with(['user', 'currency'])->where('address', $address)->first();
+        $wallet = Wallet::with(['user', 'currency'])->where('address', $address)->where('currency_id', $currencyId)->first();
         if (!$wallet) {
             Log::warning('Subscription wallet not found', ['address' => $address, 'txHash' => $txHash]);
             return ['success' => false, 'message' => 'Wallet not found.'];
