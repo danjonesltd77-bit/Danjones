@@ -15,4 +15,9 @@ class Currency extends Model
     {
         return $this->belongsTo(Currency::class, 'parent_id');
     }
+
+    public function hdWallet()
+    {
+        return $this->hasOne(HdWallet::class);
+    }
 }

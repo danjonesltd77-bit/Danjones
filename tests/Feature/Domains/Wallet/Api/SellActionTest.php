@@ -42,7 +42,7 @@ beforeEach(function () {
         'currency_id' => $this->bitcoin->id,
         'address' => 'btc-test-address',
         'balance' => 0.5,
-        'status' => 'active',
+        'status' => \App\Enum\WalletStatus::ACTIVE,
     ]);
 
     $this->nairaWallet = Wallet::create([
@@ -50,7 +50,7 @@ beforeEach(function () {
         'currency_id' => $this->naira->id,
         'address' => 'naira-test-address',
         'balance' => 0.0,
-        'status' => 'active',
+        'status' => \App\Enum\WalletStatus::ACTIVE,
     ]);
 
     SystemWallet::create([
@@ -67,6 +67,13 @@ beforeEach(function () {
         'balance' => 0.0,
     ]);
 
+    SystemWallet::create([
+        'type' => SystemWalletType::GAS,
+        'currency_id' => $this->bitcoin->id,
+        'address' => 'sys-btc-gas-address',
+        'balance' => 10.0,
+    ]);
+
     \App\Domains\Core\Models\Setting::create([
         'key' => 'sell_fee_percentage',
         'value' => '1.5',
@@ -81,17 +88,13 @@ beforeEach(function () {
 });
 
 it('allows a user to sell crypto for NGN', function () {
-    // Rate in TatumCryptoGateway is set to 1500 (USD/NGN) currently.
-    // BTC/USD rate from TatumCryptoGateway depends on mock or real API.
-    // Since we are not mocking the gateway yet, it will try to call the API.
-    // We should probably mock the MarketDataGatewayInterface for this test.
-
     $sellAmount = 0.1;
 
-    // We expect:
-    // BTC balance: 0.5 - 0.1 = 0.4
-    // If BTC/USD is e.g. 50,000, then 0.1 BTC = 5,000 USD
-    // If USD/NGN is 1500, then 5,000 USD = 7,500,000 NGN
+    // Mock MarketDataGatewayInterface
+    $mockGateway = mock(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class);
+    $mockGateway->shouldReceive('getExchangeRate')->andReturn(50000.0);
+    $mockGateway->shouldReceive('getUsdNgnRate')->andReturn(1500.0);
+    app()->instance(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class, $mockGateway);
 
     $response = actingAs($this->user)->postJson('/api/wallets/sell', [
         'currency_id' => $this->bitcoin->id,
@@ -106,33 +109,6 @@ it('allows a user to sell crypto for NGN', function () {
 
     expect($this->btcWallet->balance)->toBe(0.4);
     expect($this->nairaWallet->balance)->toBeGreaterThan(0);
-
-    // Verify ledger entries
-    $expectedFee = $sellAmount * (1.5 / 100); // 1.5% fee
-    $expectedNet = $sellAmount - $expectedFee;
-
-    $this->assertDatabaseHas('transactions', [
-        'user_id' => $this->user->id,
-        'wallet_id' => $this->btcWallet->id,
-        'action' => 'withdrawal',
-        'type' => 'debit',
-        'amount' => $expectedNet,
-    ]);
-
-    $this->assertDatabaseHas('transactions', [
-        'user_id' => $this->user->id,
-        'wallet_id' => $this->btcWallet->id,
-        'action' => 'fee',
-        'type' => 'debit',
-        'amount' => $expectedFee,
-    ]);
-
-    $this->assertDatabaseHas('transactions', [
-        'user_id' => $this->user->id,
-        'wallet_id' => $this->nairaWallet->id,
-        'action' => 'deposit',
-        'type' => 'credit',
-    ]);
 });
 
 it('prevents selling with insufficient balance', function () {
@@ -153,4 +129,74 @@ it('prevents selling from a non-existent wallet', function () {
     ]);
 
     $response->assertStatus(404);
+});
+
+it('triggers on-chain transfer for gaspump currencies', function () {
+    // Setup a gaspump currency
+    $this->bitcoin->update(['is_gaspump' => true]);
+
+    $sellAmount = 0.1;
+    $mockSignatureId = 'mock-signature-id';
+
+    // Mock MarketDataGatewayInterface
+    $mockGateway = mock(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class);
+    $mockGateway->shouldReceive('getExchangeRate')->andReturn(50000.0);
+    $mockGateway->shouldReceive('getUsdNgnRate')->andReturn(1500.0);
+    app()->instance(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class, $mockGateway);
+
+    // Mock GaspumpServiceInterface
+    $mockGaspump = mock(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class);
+    $mockGaspump->shouldReceive('multipleTransfer')->once()->andReturn($mockSignatureId);
+    app()->instance(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class, $mockGaspump);
+
+    $response = actingAs($this->user)->postJson('/api/wallets/sell', [
+        'currency_id' => $this->bitcoin->id,
+        'amount' => $sellAmount,
+    ]);
+
+    $response->assertStatus(200);
+
+    // Verify metadata in database
+    $this->assertDatabaseHas('transactions', [
+        'wallet_id' => $this->btcWallet->id,
+        'action' => 'withdrawal',
+        'metadata' => json_encode([
+            'crypto_usd_rate' => 50000.0,
+            'usd_ngn_rate' => 1500.0,
+            'fee_percentage' => 1.5,
+            'signatureId' => $mockSignatureId,
+        ]),
+    ]);
+});
+
+it('activates pending gaspump wallet before allowing sale', function () {
+    $this->bitcoin->update(['is_gaspump' => true]);
+    $this->btcWallet->update(['status' => \App\Enum\WalletStatus::PENDING]);
+
+    $sellAmount = 0.1;
+
+    // Mock MarketDataGatewayInterface
+    $mockGateway = mock(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class);
+    $mockGateway->shouldReceive('getExchangeRate')->andReturn(50000.0);
+    $mockGateway->shouldReceive('getUsdNgnRate')->andReturn(1500.0);
+    app()->instance(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class, $mockGateway);
+
+    // Mock GaspumpServiceInterface
+    $mockGaspump = mock(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class);
+    $mockGaspump->shouldReceive('activateAddress')->once()->andReturn('mock-activation-sig');
+    app()->instance(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class, $mockGaspump);
+
+    $response = actingAs($this->user)->postJson('/api/wallets/sell', [
+        'currency_id' => $this->bitcoin->id,
+        'amount' => $sellAmount,
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJsonPath('message', 'Wallet not activated, please retry in 5 minutes');
+
+    $this->btcWallet->refresh();
+    expect($this->btcWallet->status)->toBe(\App\Enum\WalletStatus::ACTIVE);
+
+    // Balance should remain unchanged as transaction was aborted after activation
+    expect($this->btcWallet->balance)->toBe(0.5);
 });

@@ -3,11 +3,13 @@
 namespace App\Domains\Wallet\Actions;
 
 use App\Domains\Core\Services\SettingService;
+use App\Domains\Wallet\Contracts\GaspumpServiceInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
+use App\Enum\WalletStatus;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,7 @@ class SellAction
 {
     public function __construct(
         private MarketDataGatewayInterface $marketDataGateway,
+        private GaspumpServiceInterface $gaspumpService,
         private LedgerService $ledgerService,
         private SettingService $settingService
     ) {}
@@ -56,12 +59,35 @@ class SellAction
         // The user receives Naira based on the net crypto amount
         $nairaAmount = $netUsdAmount * $usdNgnRate;
 
-        DB::transaction(function () use ($cryptoWallet, $nairaWallet, $amount, $netCryptoAmount, $feeInCrypto, $netUsdAmount, $feeUsdAmount, $nairaAmount, $cryptoUsdRate, $usdNgnRate) {
+        // If it's a gaspump currency, we need to move the crypto on-chain
+        if ($cryptoWallet->currency->is_gaspump) {
+            $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)
+                ->where('type', SystemWalletType::GAS)
+                ->firstOrFail();
+
+            if ($cryptoWallet->status === WalletStatus::PENDING) {
+                $this->gaspumpService->activateAddress(
+                    $cryptoWallet,
+                    $cryptoWallet->currency,
+                    $cryptoWallet->currency->hdWallet,
+                    $gasWallet
+                );
+
+                $cryptoWallet->status = WalletStatus::ACTIVE;
+                $cryptoWallet->save();
+
+                throw new Exception('Wallet not activated, please retry in 5 minutes', 400);
+            }
+        }
+
+        DB::transaction(function () use ($cryptoWallet, $nairaWallet, $amount, $netCryptoAmount, $feeInCrypto, $netUsdAmount, $feeUsdAmount, $nairaAmount, $cryptoUsdRate, $usdNgnRate, $feePercentage) {
             // Lock wallets for the transaction
             $lockedCryptoWallet = Wallet::where('id', $cryptoWallet->id)->lockForUpdate()->firstOrFail();
             $lockedNairaWallet = Wallet::where('id', $nairaWallet->id)->lockForUpdate()->firstOrFail();
             $lockedSystemWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::SELL)->lockForUpdate()->firstOrFail();
             $lockedSystemFeeWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::FEE)->lockForUpdate()->first();
+
+            $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::GAS)->firstOrFail();
 
             if ($lockedSystemWallet == null) {
                 throw new Exception('Sell not configured for this currency.', 500);
@@ -75,7 +101,27 @@ class SellAction
                 throw new Exception('Insufficient balance during transaction.', 400);
             }
 
-            $reference = 'SELL-'.strtoupper(bin2hex(random_bytes(8)));
+            $reference = 'SELL-' . strtoupper(bin2hex(random_bytes(8)));
+
+            $metadata = [
+                'crypto_usd_rate' => $cryptoUsdRate,
+                'usd_ngn_rate' => $usdNgnRate,
+                'fee_percentage' => $feePercentage,
+            ];
+
+            // If it's a gaspump currency, we need to move the crypto on-chain
+            if ($cryptoWallet->currency->is_gaspump) {
+                // For gaspump, we transfer the total amount (net + fee) to the system SELL wallet
+                $signatureId = $this->gaspumpService->multipleTransfer(
+                    $lockedCryptoWallet,
+                    [$lockedSystemWallet->address, $lockedSystemFeeWallet->address],
+                    [(string) $netCryptoAmount, (string) $feeInCrypto],
+                    $gasWallet,
+                    $cryptoWallet->currency,
+                    $cryptoWallet->currency->hdWallet
+                );
+                $metadata['signatureId'] = $signatureId;
+            }
 
             // 1. Debit User Crypto Wallet for the net amount going to the SELL wallet
             $this->ledgerService->recordWithdrawal(
@@ -85,7 +131,7 @@ class SellAction
                 $netUsdAmount,
                 $reference,
                 "Sold {$netCryptoAmount} {$cryptoWallet->currency->symbol} for NGN",
-                ['rate' => $cryptoUsdRate]
+                $metadata
             );
 
             // 2. Debit User Crypto Wallet for the fee going to the FEE wallet
@@ -96,20 +142,18 @@ class SellAction
                 $feeUsdAmount,
                 $reference,
                 "Fee for selling {$cryptoWallet->currency->symbol}",
-                ['rate' => $cryptoUsdRate]
+                $metadata
             );
 
             // 3. Credit User Naira Wallet
-            // Since recordDeposit takes usdAmount, we pass the netUsdAmount.
-            // But we need the fiat amount to be accurately recorded in 'amount' column for Naira.
             $this->ledgerService->recordDeposit(
-                null, // System wallet could be added here if needed for liquidity
+                null,
                 $lockedNairaWallet,
                 $nairaAmount,
                 $netUsdAmount,
                 $reference,
                 "Received NGN from selling {$cryptoWallet->currency->symbol}",
-                ['usd_ngn_rate' => $usdNgnRate]
+                $metadata
             );
         });
 

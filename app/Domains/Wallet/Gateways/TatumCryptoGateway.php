@@ -4,6 +4,7 @@ namespace App\Domains\Wallet\Gateways;
 
 use App\Domains\Core\Services\SettingService;
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
+use App\Domains\Wallet\Contracts\GaspumpServiceInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Contracts\SupportsWebhooksInterface;
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
@@ -11,10 +12,11 @@ use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\TatumApiClient;
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInterface, SupportsWebhooksInterface
+class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInterface, SupportsWebhooksInterface, GaspumpServiceInterface
 {
     private TatumApiClient $apiClient;
 
@@ -100,7 +102,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
                 return $confirmations >= 2;
             }
         } catch (\Exception $e) {
-            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: ".$e->getMessage());
+            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: " . $e->getMessage());
 
             return false;
         }
@@ -194,4 +196,101 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
     {
         return $this->settingService->get('usd_ngn_rate', 1500.0);
     }
+
+    function activateAddress(WalletAccountInterface $wallet, Currency $currency, HdWallet $hdWallet, SystemWallet $gasWallet)  {
+        if (!$currency->is_gaspump) {
+            throw new Exception("Gaspump transfer not supported for non-gaspump currency {$currency->symbol}", 500);
+        }
+
+        $chain = $currency->token_currency;
+        if ($currency->parent_id != null) {
+            $chain = $currency->parent->token_currency;
+        }
+
+        if ($gasWallet->balance < $currency->fee) {
+            throw new Exception("Address activation not available", 500);
+        }
+
+        $payload = [
+            'chain' => $chain,
+            'owner' => $gasWallet->address,
+            'from' => (int)$wallet->index,
+            'to' => (int)$wallet->index,
+            'signatureId' => $hdWallet->private_key,
+        ];
+
+        // if(env('APP_ENV') == 'production') {
+        //     $payload['signatureId'] = $hdWallet->private_key;
+        // }else{
+        //     $payload['fromPrivateKey'] = "0ca1c3ba8b7596f5b64dd42be89cc476c3b91a25917e4c046a38e5db607000c1";
+        // }
+
+        if(!in_array($currency->id, [6,7,8])) {
+            $payload['feeLimit'] = $currency->fee;
+        }
+
+        $response = $this->apiClient->post('/gas-pump/activate', $payload, 'v3', is_gaspump: true);
+        Log::info($response->json());
+
+        if (! $response->successful()) {
+            Log::error('Failed to activate address', [
+                'from' => $wallet->address,
+                'response' => $response->json(),
+            ]);
+
+            throw new Exception('Failed to activate address', 500);
+        }
+
+        return;
+    }
+
+    public function multipleTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts,
+     SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string
+    {
+        if (!$currency->is_gaspump) {
+            throw new \Exception("Gaspump transfer not supported for non-gaspump currency {$currency->symbol}", 500);
+        }
+
+        $chain = $currency->token_currency;
+        if ($currency->parent_id != null) {
+            $chain = $currency->parent->token_currency;
+        }
+
+        $tokenAddress = [];
+        $tokenId = [];
+        $contractType = [];
+
+        foreach ($recipient_addresses as $address) {
+            $tokenAddress[] = $currency->token_address;
+            $tokenId[] = $currency->token_id;
+            $contractType[] = (int)$currency->contract_type;
+        }
+
+        $payload = [
+            'chain' => $chain,
+            'custodialAddress' => $from->address,
+            'recipient' => $recipient_addresses,
+            'contractType' => $contractType,
+            'amount' => $amounts,
+            'signatureId' => $hdWallet->private_key,
+            'from' => $gasWallet->address,
+            'feeLimit' => $currency->fee,
+            "tokenAddress" => $tokenAddress,
+            "tokenId" => $tokenId
+        ];
+
+        $response = $this->apiClient->post('/blockchain/sc/custodial/transfer/batch', $payload, 'v3', is_gaspump: true);
+
+        if (! $response->successful()) {
+            Log::error('Failed to transfer from gas pump custodial address', [
+                'from' => $from->address,
+                'to' => $recipient_addresses,
+                'response' => $response->json(),
+            ]);
+            throw new \Exception($response->json()['message'] ?? 'Failed to transfer funds', 500);
+        }
+
+        return $response->json()['signatureId'];
+    }
+
 }

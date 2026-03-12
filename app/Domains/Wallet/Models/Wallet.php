@@ -3,6 +3,7 @@
 namespace App\Domains\Wallet\Models;
 
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
+use App\Enum\WalletStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,13 @@ class Wallet extends Model implements WalletAccountInterface
         'index',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => WalletStatus::class,
+        ];
+    }
 
     public function getWalletId(): string
     {
