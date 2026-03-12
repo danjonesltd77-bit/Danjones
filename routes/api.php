@@ -18,10 +18,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [WalletController::class, 'wallets']);
         Route::get('/wallet/{currencyId}', [WalletController::class, 'wallet']);
         Route::post('/create', [WalletController::class, 'create']);
+        Route::post('/sell', [WalletController::class, 'sell']);
     });
 });
 
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
-require __DIR__ . '/webhook.php';
+require __DIR__.'/webhook.php';

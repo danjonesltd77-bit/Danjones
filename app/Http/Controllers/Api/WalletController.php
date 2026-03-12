@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Wallet\Actions\CreateWalletAction;
+use App\Domains\Wallet\Actions\SellAction;
 use App\Domains\Wallet\Models\Currency;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateWalletRequest;
+use App\Http\Requests\Api\SellRequest;
 use App\Http\Resources\CurrencyResource;
 use App\Http\Resources\WalletResource;
 use App\Http\Responses\ApiResponse;
@@ -25,6 +27,7 @@ class WalletController extends Controller
         $currencies = Currency::where('is_active', true)->get();
 
         $resource = CurrencyResource::collection($currencies)->resolve();
+
         return ApiResponse::success(['currencies' => $resource], 200);
     }
 
@@ -39,18 +42,20 @@ class WalletController extends Controller
             ->get();
 
         $resource = WalletResource::collection($wallets)->resolve();
+
         return ApiResponse::success(['wallets' => $resource], 200);
     }
 
-    function wallet(int $currencyId)
+    public function wallet(int $currencyId)
     {
         $wallet = Auth::user()->wallet($currencyId);
 
-        if (!$wallet) { 
+        if (! $wallet) {
             return ApiResponse::error('Wallet not found', 404);
         }
 
         $resource = (new WalletResource($wallet->load(['currency', 'transactions'])))->resolve();
+
         return ApiResponse::success(['wallet' => $resource], 200);
     }
 
@@ -69,10 +74,41 @@ class WalletController extends Controller
         } catch (Exception $e) {
             $code = $e->getCode();
             $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
+
             return ApiResponse::error($e->getMessage(), $code);
         }
 
         $resource = (new WalletResource($wallet->load('currency')))->resolve();
+
         return ApiResponse::success(['wallet' => $resource], 201);
+    }
+
+    /**
+     * Sell cryptocurrency for NGN.
+     */
+    public function sell(SellRequest $request, SellAction $action): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $currencyId = $request->integer('currency_id');
+            $amount = $request->float('amount');
+
+            $cryptoWallet = $user->wallets()
+                ->where('currency_id', $currencyId)
+                ->first();
+
+            if (! $cryptoWallet) {
+                return ApiResponse::error('Crypto wallet not found.', 404);
+            }
+
+            $result = $action->execute($user, $cryptoWallet, $amount);
+
+            return ApiResponse::success($result, 200);
+        } catch (Exception $e) {
+            $code = $e->getCode();
+            $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
+
+            return ApiResponse::error($e->getMessage(), $code);
+        }
     }
 }

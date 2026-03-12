@@ -2,13 +2,10 @@
 
 namespace App\Domains\Wallet\Services;
 
-use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Contracts\TransactionRepositoryInterface;
+use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Models\Transaction;
-use App\Enum\TransactionAction;
-use Exception;
 use Illuminate\Support\Facades\DB;
-use App\Enum\TransactionType;
 
 class LedgerService
 {
@@ -48,7 +45,7 @@ class LedgerService
      */
     public function recordWithdrawal(
         WalletAccountInterface $userWallet,
-        WalletAccountInterface $systemWallet,
+        ?WalletAccountInterface $systemWallet,
         float $amount,
         float $usdAmount,
         string $reference,
@@ -58,7 +55,9 @@ class LedgerService
     ): void {
         DB::transaction(function () use ($userWallet, $systemWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
             $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'debit', 'withdrawal', $reference, $description, $metadata, $status);
-            $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'credit', 'withdrawal', $reference, $description, $metadata, $status);
+            if ($systemWallet) {
+                $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'credit', 'withdrawal', $reference, $description, $metadata, $status);
+            }
         });
     }
 

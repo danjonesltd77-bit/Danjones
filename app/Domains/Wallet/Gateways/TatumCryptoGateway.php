@@ -2,6 +2,7 @@
 
 namespace App\Domains\Wallet\Gateways;
 
+use App\Domains\Core\Services\SettingService;
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Contracts\SupportsWebhooksInterface;
@@ -10,17 +11,19 @@ use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\TatumApiClient;
-use App\Enum\SystemWalletType;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInterface, MarketDataGatewayInterface
+class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInterface, SupportsWebhooksInterface
 {
     private TatumApiClient $apiClient;
 
-    public function __construct(TatumApiClient $apiClient)
+    private SettingService $settingService;
+
+    public function __construct(TatumApiClient $apiClient, SettingService $settingService)
     {
         $this->apiClient = $apiClient;
+        $this->settingService = $settingService;
     }
 
     public function getBalance(string $identifier): float
@@ -31,10 +34,10 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
     public function generateAddress(Currency $currency, HdWallet $hdWallet, ?string $chain = null, ?SystemWallet $gasWallet = null): string
     {
         if ($currency->is_gaspump) {
-            if (!$gasWallet) {
+            if (! $gasWallet) {
                 throw new \Exception("System gas wallet not configured for {$currency->symbol}", 500);
             }
-            $response = $this->apiClient->post("/gas-pump", [
+            $response = $this->apiClient->post('/gas-pump', [
                 'chain' => $chain,
                 'owner' => $gasWallet->address,
                 'from' => $hdWallet->index,
@@ -48,11 +51,11 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
 
             return $response->json()[0];
         } else {
-            if (!$hdWallet) {
+            if (! $hdWallet) {
                 throw new \Exception("HD Wallet missing for {$currency->symbol}", 500);
             }
             $response = $this->apiClient->get("/{$currency->name}/address/{$hdWallet->xpub}/{$hdWallet->index}");
-           
+
             if (! $response->successful()) {
                 throw new \Exception($response->json()['message'] ?? 'Failed to generate crypto address', $response->status() ?: 500);
             }
@@ -97,7 +100,8 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
                 return $confirmations >= 2;
             }
         } catch (\Exception $e) {
-            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: " . $e->getMessage());
+            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: ".$e->getMessage());
+
             return false;
         }
     }
@@ -114,8 +118,8 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
             $chain = $currency->parent->name;
         }
 
-        if ($chain == "Dogecoin") {
-            $chain = "Doge";
+        if ($chain == 'Dogecoin') {
+            $chain = 'Doge';
         }
 
         $network = 'mainnet';
@@ -184,5 +188,10 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
         }
 
         return $rate;
+    }
+
+    public function getUsdNgnRate(): float
+    {
+        return $this->settingService->get('usd_ngn_rate', 1500.0);
     }
 }
