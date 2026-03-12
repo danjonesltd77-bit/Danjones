@@ -59,11 +59,6 @@ class ProcessIncomingWebhookAction
             default => [$this->extractGenericAmount($details), 'pending'],
         };
 
-        // TRON specific adjustment (Sun scaling)
-        if ($wallet->currency_id === 3 && isset($payload['amount'])) {
-            $payload['amount'] = (float) $payload['amount'] * 1000000;
-        }
-
         return $this->processValidatedDeposit($wallet, $amount, $txHash, $payload, $status);
     }
 
@@ -160,17 +155,17 @@ class ProcessIncomingWebhookAction
             return 0;
         }
 
-        $trx = 0;
+        $sun = 0;
         foreach ($contracts as $contract) {
             $value = $contract['parameter']['value'] ?? [];
 
             // Native TRX transfer or TRC10
             if (isset($value['toAddressBase58']) && $value['toAddressBase58'] === $address) {
-                $trx += (float) ($value['amount'] ?? 0);
+                $sun += (float) ($value['amount'] ?? 0);
             }
         }
 
-        return $trx > 0 ? $trx : 0;
+        return $sun > 0 ? $sun / 1000000 : 0;
     }
 
     /**
