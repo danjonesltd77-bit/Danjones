@@ -32,6 +32,18 @@ beforeEach(function () {
         'is_active' => true,
         'decimal' => 8,
         'token_currency' => 'BTC',
+        'token_address' => '0x...',
+        'token_id' => '1',
+        'contract_type' => 0,
+        'fee' => 0.001,
+    ]);
+
+    \App\Domains\Wallet\Models\HdWallet::create([
+        'currency_id' => $this->bitcoin->id,
+        'xpub' => 'xpub...',
+        'private_key' => 'priv...',
+        'signature_id' => 'sig-id',
+        'index' => 0,
     ]);
 
     $this->user = User::factory()->create();

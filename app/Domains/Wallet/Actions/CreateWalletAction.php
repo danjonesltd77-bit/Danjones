@@ -9,6 +9,7 @@ use App\Domains\Wallet\Models\HdWallet;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
 use App\Enum\SystemWalletType;
+use App\Enum\WalletStatus;
 use App\Models\User;
 use Exception;
 use Illuminate\Validation\ValidationException;
@@ -37,8 +38,8 @@ class CreateWalletAction
         if (! $currency->is_crypto) {
             return $user->wallets()->create([
                 'currency_id' => $currencyId,
-                'address'     => $user->email,
-                'status'      => 'active',
+                'address' => $user->email,
+                'status' => WalletStatus::ACTIVE,
             ]);
         }
 
@@ -62,30 +63,29 @@ class CreateWalletAction
 
             $parentCurrency = Currency::findOrFail($currency->parent_id);
 
-            if (!$user->wallets()->where('currency_id', $parentCurrency->id)->exists()) {
+            if (! $user->wallets()->where('currency_id', $parentCurrency->id)->exists()) {
                 throw new Exception("Please create a {$parentCurrency->name} wallet first.", 400);
             }
 
             $address = $user->wallets()->where('currency_id', $parentCurrency->id)->first()->address;
-        } else{
+        } else {
             $address = $this->cryptoGateway->generateAddress($currency, $hdWallet, $chain, $gasWallet);
         }
 
-
-        if (!$address) {
+        if (! $address) {
             throw new Exception("Failed to generate address for currency {$currency->symbol}", 500);
         }
 
-        $status = 'active';
+        $status = WalletStatus::ACTIVE;
         if ($currency->is_gaspump == true) {
-            $status = 'pending';
+            $status = WalletStatus::PENDING;
         }
 
         $wallet = $user->wallets()->create([
             'currency_id' => $currencyId,
-            'address'     => $address,
-            'index'       => $hdWallet->index,
-            'status'      => $status,
+            'address' => $address,
+            'index' => $hdWallet->index,
+            'status' => $status,
         ]);
 
         $hdWallet->index += 1;
