@@ -19,6 +19,7 @@ class WalletResource extends JsonResource
             'status'      => $this->status,
             'currency_id' => $this->currency_id,
             'currency'    => new CurrencyResource($this->whenLoaded('currency')),
+            'transactions' => TransactionResource::collection($this->whenLoaded('transactions')),
         ];
     }
 }

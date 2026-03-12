@@ -57,6 +57,6 @@ class Wallet extends Model implements WalletAccountInterface
 
     public function transactions()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->morphMany(Transaction::class, 'wallet');
     }
 }

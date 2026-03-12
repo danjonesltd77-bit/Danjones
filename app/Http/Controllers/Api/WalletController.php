@@ -50,7 +50,7 @@ class WalletController extends Controller
             return ApiResponse::error('Wallet not found', 404);
         }
 
-        $resource = (new WalletResource($wallet))->resolve();
+        $resource = (new WalletResource($wallet->load(['currency', 'transactions'])))->resolve();
         return ApiResponse::success(['wallet' => $resource], 200);
     }
 

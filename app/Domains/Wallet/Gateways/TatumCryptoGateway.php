@@ -159,12 +159,12 @@ class TatumCryptoGateway implements CryptoGatewayInterface, SupportsWebhooksInte
                 $rate = $res['value'];
                 break;
             case 3:
-                $res = $this->apiClient->get('/tatum/rate/USDT?basePair=USD');
+                $res = $this->apiClient->get('/tatum/rate/TRON?basePair=USD');
                 $res = $res->json();
                 $rate = $res['value'];
                 break;
             case 4:
-                $res = $this->apiClient->get('/tatum/rate/TRON?basePair=USD');
+                $res = $this->apiClient->get('/tatum/rate/USDT?basePair=USD');
                 $res = $res->json();
                 $rate = $res['value'];
                 break;
