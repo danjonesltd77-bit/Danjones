@@ -20,8 +20,8 @@ class CancelTradeAction
      */
     public function execute(?User $user, P2PTrade $trade): P2PTrade
     {
-        if ($trade->status !== TradeStatus::PENDING) {
-            throw new Exception('Only pending trades can be cancelled.', 400);
+        if ($trade->status !== TradeStatus::PENDING && $trade->status !== TradeStatus::PAID) {
+            throw new Exception('Only pending or paid trades can be cancelled.', 400);
         }
 
         if ($user && $trade->buyer_id !== $user->id && $trade->seller_id !== $user->id) {

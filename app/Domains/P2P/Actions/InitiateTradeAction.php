@@ -27,7 +27,7 @@ class InitiateTradeAction
         }
 
         if ($initiator->id === $ad->user_id) {
-            // throw new Exception('You cannot trade with your own advertisement.', 400);
+            throw new Exception('You cannot trade with your own advertisement.', 400);
         }
 
         if ($fiatAmount < $ad->min_limit || $fiatAmount > $ad->max_limit) {
@@ -38,6 +38,19 @@ class InitiateTradeAction
 
         if ($cryptoAmount > $ad->available_amount) {
             throw new Exception('Insufficient crypto available in this advertisement.', 400);
+        }
+
+        // Restrict buyer from creating two trades at the same time for the same ads when one is pending/paid
+        $isAdCreatorSelling = $ad->type === AdvertisementType::SELL;
+        $buyerId = $isAdCreatorSelling ? $initiator->id : $ad->user_id;
+
+        $existingTrade = P2PTrade::where('advertisement_id', $ad->id)
+            ->where('buyer_id', $buyerId)
+            ->whereIn('status', [TradeStatus::PENDING, TradeStatus::PAID])
+            ->exists();
+
+        if ($existingTrade) {
+            throw new Exception('You already have an active trade for this advertisement. Please complete or cancel it before opening a new one.', 400);
         }
 
         $isAdCreatorSelling = $ad->type === AdvertisementType::SELL;

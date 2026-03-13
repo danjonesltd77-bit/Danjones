@@ -36,9 +36,9 @@ class CreateDefaultWalletsAction
         }
 
         // Tatum Gateway abstracting external API calls
-        $response = $this->cryptoGateway->generateAddress(2);
+        $response = $this->cryptoGateway->generateAddress($btcHd->currency, $btcHd);
 
-        $btcAddress = $response['address'];
+        $btcAddress = $response;
 
         $btcWallet = $user->wallets()->create([
             'name' => $user->name,
