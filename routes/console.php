@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('wallet:check-pending-deposits')->everyMinute();
+Schedule::command('p2p:cancel-expired-trades')->everyMinute();

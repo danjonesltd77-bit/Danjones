@@ -10,6 +10,7 @@ enum SystemWalletType: string
     case SELL = 'sell';
     case GAS = 'gas';
     case DEPOSIT = 'deposit';
+    case ESCROW = 'escrow';
 
     public function label(): string
     {
@@ -20,6 +21,7 @@ enum SystemWalletType: string
             self::SELL => 'Sell Wallet',
             self::GAS => 'Gas Wallet',
             self::DEPOSIT => 'Deposit Wallet',
+            self::ESCROW => 'Escrow Wallet',
         };
     }
 }

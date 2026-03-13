@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\P2PController;
 use App\Http\Controllers\Api\WalletController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +21,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet/{currencyId}', [WalletController::class, 'wallet']);
         Route::post('/create', [WalletController::class, 'create']);
         Route::post('/sell', [WalletController::class, 'sell']);
+    });
+
+    Route::prefix('bank-accounts')->controller(BankAccountController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/list', 'bankList');
+        Route::post('/store', 'store');
+        Route::get('/delete/{bankAccount}', 'destroy');
+    });
+
+    Route::prefix('p2p')->controller(P2PController::class)->group(function () {
+        Route::get('/ads', 'indexAds');
+        Route::get('/my-ads', 'myAds');
+        Route::get('/my-trades', 'myTrades');
+        Route::post('/close-ads/{ad}', 'closeAd');
+        Route::post('/create-ads', 'storeAd');
+
+        Route::post('/initiate-trade', 'initiateTrade');
+        Route::post('/trades/{trade}/pay', 'markTradePaid');
+        Route::post('/trades/{trade}/complete', 'completeTrade');
+        Route::post('/trades/{trade}/cancel', 'cancelTrade');
+        Route::post('/trades/{trade}/dispute', 'disputeTrade');
     });
 });
 

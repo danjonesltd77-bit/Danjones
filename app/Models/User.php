@@ -15,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -61,7 +61,7 @@ class User extends Authenticatable
         return Str::of($this->name)
             ->explode(' ')
             ->take(2)
-            ->map(fn($word) => Str::substr($word, 0, 1))
+            ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
 
@@ -71,6 +71,38 @@ class User extends Authenticatable
     public function wallets()
     {
         return $this->hasMany(Wallet::class);
+    }
+
+    /**
+     * Get the user's bank accounts.
+     */
+    public function bankAccounts()
+    {
+        return $this->hasMany(\App\Domains\Bank\Models\BankAccount::class);
+    }
+
+    /**
+     * Get the user's P2P advertisements.
+     */
+    public function p2pAdvertisements()
+    {
+        return $this->hasMany(\App\Domains\P2P\Models\P2PAdvertisement::class);
+    }
+
+    /**
+     * Get P2P trades where the user is the seller.
+     */
+    public function p2pTradesAsSeller()
+    {
+        return $this->hasMany(\App\Domains\P2P\Models\P2PTrade::class, 'seller_id');
+    }
+
+    /**
+     * Get P2P trades where the user is the buyer.
+     */
+    public function p2pTradesAsBuyer()
+    {
+        return $this->hasMany(\App\Domains\P2P\Models\P2PTrade::class, 'buyer_id');
     }
 
     /**
@@ -95,8 +127,8 @@ class User extends Authenticatable
     public function wallet(int|string $currency): ?Wallet
     {
         return $this->wallets()
-            ->when(is_int($currency), fn($q) => $q->where('currency_id', $currency))
-            ->when(is_string($currency), fn($q) => $q->whereHas('currency', fn($c) => $c->where('symbol', $currency)))
+            ->when(is_int($currency), fn ($q) => $q->where('currency_id', $currency))
+            ->when(is_string($currency), fn ($q) => $q->whereHas('currency', fn ($c) => $c->where('symbol', $currency)))
             ->first();
     }
 }
