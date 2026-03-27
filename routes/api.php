@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\P2PController;
+use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\WalletController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/trades/{trade}/complete', 'completeTrade');
         Route::post('/trades/{trade}/cancel', 'cancelTrade');
         Route::post('/trades/{trade}/dispute', 'disputeTrade');
+    });
+
+    Route::prefix('verifications')->controller(VerificationController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/verify-nin', 'verifyNin');
     });
 });
 

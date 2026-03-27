@@ -41,4 +41,10 @@ return [
         'api_key_gaspump' => env('TATUM_KEY_GASPUMP'),
     ],
 
+    'qoreid' => [
+        'base_url' => env('QOREID_URL', 'https://api.qoreid.com'),
+        'client_id' => env('QOREID_CLIENTID'),
+        'secret' => env('QOREID_SECRET'),
+    ],
+
 ];
