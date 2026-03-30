@@ -17,11 +17,9 @@ class RegisterUserAction
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'ref_code' => $ref_code
+            'ref_code' => $ref_code,
+            'phone' => $data['phone'],
         ]);
-
-        $user->ref_code = $ref_code;
-        $user->save();
 
         return $user;
     }
