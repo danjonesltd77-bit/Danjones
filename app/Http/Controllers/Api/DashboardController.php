@@ -42,13 +42,13 @@ class DashboardController extends Controller
 
         // Calculate total balance in USD
         $totalBalanceUsd = $user->wallets->sum(function ($wallet) use ($prices, $usdNgnRate) {
-            if (!$wallet->currency->is_crypto) {
-                // If it's a fiat wallet (like NGN), convert to USD
-                return $wallet->balance / $usdNgnRate;
-            }
+            $price = $wallet->currency->is_crypto
+                ? ($prices[$wallet->currency_id] ?? 0)
+                : 1 / $usdNgnRate;
 
-            $price = $prices[$wallet->currency_id] ?? 0;
-            return $wallet->balance * $price;
+            $wallet->balance_usd = (float) $wallet->balance * $price;
+
+            return $wallet->balance_usd;
         });
 
         $totalBalanceNgn = $totalBalanceUsd * $usdNgnRate;

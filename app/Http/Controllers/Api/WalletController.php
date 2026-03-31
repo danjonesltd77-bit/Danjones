@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Wallet\Actions\CreateWalletAction;
 use App\Domains\Wallet\Actions\SellAction;
+use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateWalletRequest;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
 {
+    public function __construct(
+        protected MarketDataGatewayInterface $marketDataGateway
+    ) {}
+
     /**
      * Return all active currencies.
      */
@@ -36,14 +41,32 @@ class WalletController extends Controller
      */
     public function wallets(Request $request): JsonResponse
     {
-        $wallets = $request->user()
-            ->wallets()
+        $user = $request->user();
+
+        $wallets = $user->wallets()
             ->with('currency')
             ->get();
 
-        $resource = WalletResource::collection($wallets)->resolve();
+        $walletCurrencyIds = $wallets->pluck('currency_id');
 
-        return ApiResponse::success(['wallets' => $resource], 200);
+        $availableCurrencies = Currency::where('is_active', true)
+            ->whereNotIn('id', $walletCurrencyIds)
+            ->get();
+
+        $usdNgnRate = $this->marketDataGateway->getUsdNgnRate();
+
+        $wallets->each(function ($wallet) use ($usdNgnRate) {
+            $price = $wallet->currency->is_crypto
+                ? $this->marketDataGateway->getExchangeRate($wallet->currency_id)
+                : 1 / $usdNgnRate;
+
+            $wallet->balance_usd = (float) $wallet->balance * $price;
+        });
+
+        return ApiResponse::success([
+            'wallets' => WalletResource::collection($wallets)->resolve(),
+            'available_currencies' => CurrencyResource::collection($availableCurrencies)->resolve(),
+        ], 200);
     }
 
     public function wallet(int $currencyId)
@@ -53,6 +76,13 @@ class WalletController extends Controller
         if (! $wallet) {
             return ApiResponse::error('Wallet not found', 404);
         }
+
+        $usdNgnRate = $this->marketDataGateway->getUsdNgnRate();
+        $price = $wallet->currency->is_crypto
+            ? $this->marketDataGateway->getExchangeRate($wallet->currency_id)
+            : 1 / $usdNgnRate;
+
+        $wallet->balance_usd = (float) $wallet->balance * $price;
 
         $resource = (new WalletResource($wallet->load(['currency', 'transactions'])))->resolve();
 
