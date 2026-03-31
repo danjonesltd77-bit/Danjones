@@ -15,16 +15,14 @@ Route::post('login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/user', [DashboardController::class, 'user']);
 
     Route::post('/transaction-pin', [AuthController::class, 'setTransactionPin']);
     Route::post('/update-transaction-pin', [AuthController::class, 'updateTransactionPin']);
 
     Route::prefix('wallets')->group(function () {
-        Route::get('/currencies', [WalletController::class, 'currencies']);
         Route::get('/', [WalletController::class, 'wallets']);
+        Route::get('/currencies', [WalletController::class, 'currencies']);
         Route::get('/wallet/{currencyId}', [WalletController::class, 'wallet']);
         Route::post('/create', [WalletController::class, 'create']);
         Route::post('/sell', [WalletController::class, 'sell']);

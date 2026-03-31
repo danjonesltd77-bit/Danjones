@@ -6,6 +6,7 @@ use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DashboardResource;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -17,7 +18,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         // Ensure wallets and currencies are loaded
         $user->load(['wallets.currency']);
 
@@ -45,7 +46,7 @@ class DashboardController extends Controller
                 // If it's a fiat wallet (like NGN), convert to USD
                 return $wallet->balance / $usdNgnRate;
             }
-            
+
             $price = $prices[$wallet->currency_id] ?? 0;
             return $wallet->balance * $price;
         });
@@ -58,5 +59,12 @@ class DashboardController extends Controller
             'total_balance_usd' => $totalBalanceUsd,
             'total_balance_ngn' => $totalBalanceNgn,
         ]);
+    }
+
+    function user()
+    {
+        $user = auth()->user();
+
+        return response()->json($user);
     }
 }

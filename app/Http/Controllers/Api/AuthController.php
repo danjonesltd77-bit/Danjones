@@ -69,25 +69,15 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Incorrect credentials'
-            ]);
+            ], 401);
         }
 
         $token = $request->user()->createToken('mobile');
 
         return response()->json([
             'success' => true,
+            'user'=> $request->user(),
             'token' => $token->plainTextToken,
-        ]);
-    }
-
-    public function user()
-    {
-        $user = Auth::user();
-
-        return response()->json([
-            'success' => true,
-            'user' => $user,
-            // 'version' => SettingController::get('version')
         ]);
     }
 
