@@ -69,6 +69,38 @@ class WalletController extends Controller
         ], 200);
     }
 
+    /**
+     * Return the user's wallet balances and current rates.
+     */
+    public function rates(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $wallets = $user->wallets()->whereHas('currency', function ($query) {
+            $query->where('is_crypto', true);
+        })->with('currency')->get();
+        $usdNgnRate = $this->marketDataGateway->getUsdNgnRate();
+
+        $rates = $wallets->map(function ($wallet) use ($usdNgnRate) {
+            $rate = $wallet->currency->is_crypto
+                ? $this->marketDataGateway->getExchangeRate($wallet->currency_id)
+                : 1 / $usdNgnRate;
+
+            return [
+                'currency_id' => $wallet->currency_id,
+                'symbol'      => $wallet->currency->symbol,
+                'name'        => $wallet->currency->name,
+                'balance'     => (float) $wallet->balance,
+                'rate_usd'    => (float) $rate,
+                'balance_usd' => (float) $wallet->balance * $rate,
+            ];
+        });
+
+        return ApiResponse::success([
+            'usd_ngn_rate' => (float) $usdNgnRate,
+            'wallets'      => $rates,
+        ], 200);
+    }
+
     public function wallet(int $currencyId)
     {
         $wallet = Auth::user()->wallet($currencyId);

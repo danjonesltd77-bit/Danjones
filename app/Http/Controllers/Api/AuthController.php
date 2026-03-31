@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Requests\Api\SetTransactionPinRequest;
 use App\Http\Requests\Api\UpdateTransactionPinRequest;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +77,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'user'=> $request->user(),
+            'user'=> new UserResource($request->user()),
             'token' => $token->plainTextToken,
         ]);
     }
@@ -91,6 +92,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
+            'user'=> new UserResource($request->user()),
             'message' => 'Transaction PIN set successfully.',
         ]);
     }

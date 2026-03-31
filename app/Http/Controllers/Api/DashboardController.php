@@ -65,6 +65,6 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        return response()->json($user);
+        return response()->json(new UserResource($user));
     }
 }

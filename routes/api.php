@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('wallets')->group(function () {
         Route::get('/', [WalletController::class, 'wallets']);
+        Route::get('/rates', [WalletController::class, 'rates']);
         Route::get('/currencies', [WalletController::class, 'currencies']);
         Route::get('/wallet/{currencyId}', [WalletController::class, 'wallet']);
         Route::post('/create', [WalletController::class, 'create']);
