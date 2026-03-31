@@ -63,7 +63,11 @@ class SellAction
         if ($cryptoWallet->currency->is_gaspump) {
             $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)
                 ->where('type', SystemWalletType::GAS)
-                ->firstOrFail();
+                ->first();
+
+            if (! $gasWallet) {
+                throw new Exception("Gas wallet configuration missing for {$cryptoWallet->currency->symbol}. Please contact support.", 500);
+            }
 
             if ($cryptoWallet->status === WalletStatus::PENDING) {
                 $this->gaspumpService->activateAddress(
@@ -84,18 +88,27 @@ class SellAction
             // Lock wallets for the transaction
             $lockedCryptoWallet = Wallet::where('id', $cryptoWallet->id)->lockForUpdate()->firstOrFail();
             $lockedNairaWallet = Wallet::where('id', $nairaWallet->id)->lockForUpdate()->firstOrFail();
-            $lockedSystemWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::SELL)->lockForUpdate()->firstOrFail();
+            $lockedSystemWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::SELL)->lockForUpdate()->first();
             $lockedSystemFeeWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::FEE)->lockForUpdate()->first();
 
-            $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::GAS)->firstOrFail();
-
-            if ($lockedSystemWallet == null) {
-                throw new Exception('Sell not configured for this currency.', 500);
+            if (! $lockedSystemWallet) {
+                throw new Exception("Sell configuration (System Wallet) missing for {$cryptoWallet->currency->symbol}. Please contact support.", 500);
             }
 
-            if ($lockedSystemFeeWallet == null) {
-                throw new Exception('Fee wallet not configured', 500);
+            if (! $lockedSystemFeeWallet) {
+                throw new Exception("Fee wallet configuration missing for {$cryptoWallet->currency->symbol}. Please contact support.", 500);
             }
+
+            // We already checked and threw an exception if gasWallet was missing above, 
+            // but we need the variable within this scope for gaspump transfers.
+            $gasWallet = null;
+            if ($cryptoWallet->currency->is_gaspump) {
+                $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::GAS)->first();
+                if (! $gasWallet) {
+                    throw new Exception("Gas wallet configuration missing for {$cryptoWallet->currency->symbol}.", 500);
+                }
+            }
+
 
             if ($lockedCryptoWallet->balance < $amount) {
                 throw new Exception('Insufficient balance during transaction.', 400);

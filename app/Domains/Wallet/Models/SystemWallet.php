@@ -19,6 +19,11 @@ class SystemWallet extends Model implements WalletAccountInterface
         'type' => SystemWalletType::class,
     ];
 
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
     public function getBalance(): float
     {
         return $this->balance;

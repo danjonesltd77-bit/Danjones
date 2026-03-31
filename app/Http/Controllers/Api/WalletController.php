@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WalletController extends Controller
 {
@@ -170,6 +171,8 @@ class WalletController extends Controller
 
             return ApiResponse::success($result, 200);
         } catch (Exception $e) {
+            Log::info($e->getMessage());
+            report($e);
             $code = $e->getCode();
             $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
 
