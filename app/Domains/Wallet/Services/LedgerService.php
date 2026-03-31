@@ -30,13 +30,14 @@ class LedgerService
         string $reference,
         string $description,
         array $metadata = [],
-        string $status = 'completed'
+        string $status = 'completed',
+        string $action = 'deposit'
     ): void {
-        DB::transaction(function () use ($systemWallet, $userWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
+        DB::transaction(function () use ($systemWallet, $userWallet, $amount, $usdAmount, $reference, $description, $metadata, $status, $action) {
             if ($systemWallet) {
-                $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'debit', 'deposit', $reference, $description, $metadata, $status);
+                $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'debit', $action, $reference, $description, $metadata, $status);
             }
-            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'credit', 'deposit', $reference, $description, $metadata, $status);
+            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'credit', $action, $reference, $description, $metadata, $status);
         });
     }
 
@@ -51,12 +52,13 @@ class LedgerService
         string $reference,
         string $description,
         array $metadata = [],
-        string $status = 'completed'
+        string $status = 'completed',
+        string $action = 'withdrawal'
     ): void {
-        DB::transaction(function () use ($userWallet, $systemWallet, $amount, $usdAmount, $reference, $description, $metadata, $status) {
-            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'debit', 'withdrawal', $reference, $description, $metadata, $status);
+        DB::transaction(function () use ($userWallet, $systemWallet, $amount, $usdAmount, $reference, $description, $metadata, $status, $action) {
+            $this->repository->recordEntry($userWallet, $amount, $usdAmount, 'debit', $action, $reference, $description, $metadata, $status);
             if ($systemWallet) {
-                $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'credit', 'withdrawal', $reference, $description, $metadata, $status);
+                $this->repository->recordEntry($systemWallet, $amount, $usdAmount, 'credit', $action, $reference, $description, $metadata, $status);
             }
         });
     }

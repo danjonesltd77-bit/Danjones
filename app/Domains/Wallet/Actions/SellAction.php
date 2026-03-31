@@ -131,7 +131,9 @@ class SellAction
                 $netUsdAmount,
                 $reference,
                 "Sold {$netCryptoAmount} {$cryptoWallet->currency->symbol} for NGN",
-                $metadata
+                $metadata,
+                'completed',
+                'sell'
             );
 
             // 2. Debit User Crypto Wallet for the fee going to the FEE wallet
@@ -153,7 +155,9 @@ class SellAction
                 $netUsdAmount,
                 $reference,
                 "Received NGN from selling {$cryptoWallet->currency->symbol}",
-                $metadata
+                $metadata,
+                'completed',
+                'sell'
             );
         });
 

@@ -171,7 +171,7 @@ it('triggers on-chain transfer for gaspump currencies', function () {
     // Verify metadata in database
     $this->assertDatabaseHas('transactions', [
         'wallet_id' => $this->btcWallet->id,
-        'action' => 'withdrawal',
+        'action' => 'sell',
         'metadata' => json_encode([
             'crypto_usd_rate' => 50000.0,
             'usd_ngn_rate' => 1500.0,

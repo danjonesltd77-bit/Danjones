@@ -84,7 +84,10 @@ class WalletController extends Controller
 
         $wallet->balance_usd = (float) $wallet->balance * $price;
 
-        $resource = (new WalletResource($wallet->load(['currency', 'transactions'])))->resolve();
+        $resource = (new WalletResource($wallet->load([
+            'currency',
+            'transactions' => fn ($query) => $query->where('action', '!=', \App\Enum\TransactionAction::FEE->value),
+        ])))->resolve();
 
         return ApiResponse::success(['wallet' => $resource], 200);
     }
