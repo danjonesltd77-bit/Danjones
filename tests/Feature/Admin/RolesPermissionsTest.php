@@ -14,7 +14,7 @@ beforeEach(function () {
     app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
     $this->superAdmin = User::factory()->create();
-    $this->superAdminRole = Role::create(['name' => 'Super Admin']);
+    $this->superAdminRole = Role::create(['name' => 'super-admin']);
     $this->superAdmin->assignRole($this->superAdminRole);
 });
 

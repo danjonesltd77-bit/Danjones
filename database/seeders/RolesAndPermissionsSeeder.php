@@ -26,17 +26,19 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            \Spatie\Permission\Models\Permission::create(['name' => $permission]);
+            \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // create roles and assign created permissions
-        $role = \Spatie\Permission\Models\Role::create(['name' => 'Super Admin']);
-        $role->givePermissionTo(\Spatie\Permission\Models\Permission::all());
+        // create roles
+        $superAdminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super-admin']);
+        
+        // As an industry standard, we can also create standard roles like admin or user here:
+        // \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
 
-        // Assign to first user
+        // Assign super-admin to first user if they exist
         $user = \App\Models\User::first();
-        if ($user) {
-            $user->assignRole($role);
+        if ($user && !$user->hasRole('super-admin')) {
+            $user->assignRole($superAdminRole);
         }
     }
 }

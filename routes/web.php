@@ -6,7 +6,12 @@ use App\Http\Controllers\Admin\DashboardController;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('dashboard', function () {
+        if (Auth::user()->hasRole('super-admin')) {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('home');
+    })->name('dashboard');
 });
 
 require __DIR__ . '/admin.php';

@@ -81,7 +81,7 @@
                                                             <button wire:click="editRolePermissions({{ $role->id }})" class="text-primary hover:text-primary/70">
                                                                 <i data-lucide="edit-3" class="h-4 w-4"></i>
                                                             </button>
-                                                            @if($role->name !== 'Super Admin')
+                                                            @if($role->name !== 'super-admin')
                                                                 <button wire:click="deleteRole({{ $role->id }})" class="text-danger hover:text-danger/70"
                                                                         onclick="confirm('Are you sure?') || event.stopImmediatePropagation()">
                                                                     <i data-lucide="trash-2" class="h-4 w-4"></i>

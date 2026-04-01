@@ -24,6 +24,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // Implicitly grant "super-admin" role all permissions
+        // This handles task 3 (bypassing permissions checks for Super Admin using a Gate interceptor)
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            return $user->hasRole('super-admin') ? true : null;
+        });
     }
 
     /**
