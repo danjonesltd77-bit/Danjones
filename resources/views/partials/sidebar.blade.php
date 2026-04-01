@@ -28,81 +28,111 @@
         class="scrollable-ref w-full h-full z-20 px-5 overflow-y-auto overflow-x-hidden pb-3 [-webkit-mask-image:-webkit-linear-gradient(top,rgba(0,0,0,0),black_30px)] [&:-webkit-scrollbar]:w-0 [&:-webkit-scrollbar]:bg-transparent [&_.simplebar-content]:p-0 [&_.simplebar-track.simplebar-vertical]:w-[10px] [&_.simplebar-track.simplebar-vertical]:mr-0.5 [&_.simplebar-track.simplebar-vertical_.simplebar-scrollbar]:before:bg-slate-400/30">
         <ul class="scrollable">
             <!-- BEGIN: First Child -->
-            <li class="side-menu__divider">
-                DASHBOARD
-            </li>
-            <li>
-                <a href="{{ route('dashboard') }}" class="side-menu__link {{ request()->routeIs('dashboard') ? 'side-menu__link--active' : '' }}">
-                    <i data-tw-merge="" data-lucide="gauge-circle" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">Overview</div>
-                </a>
-            </li>
+            @can('manage dashboard')
+                <li class="side-menu__divider">
+                    DASHBOARD
+                </li>
+                <li>
+                    <a href="{{ route('dashboard') }}"
+                        class="side-menu__link {{ request()->routeIs('dashboard') ? 'side-menu__link--active' : '' }}">
+                        <i data-tw-merge="" data-lucide="gauge-circle" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">Overview</div>
+                    </a>
+                </li>
+            @endcan
 
-            <li class="side-menu__divider">
-                ASSETS
-            </li>
-            <li>
-                <a href="#" class="side-menu__link">
-                    <i data-tw-merge="" data-lucide="wallet" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">Wallets</div>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="side-menu__link">
-                    <i data-tw-merge="" data-lucide="arrow-right-left" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">Transactions</div>
-                </a>
-            </li>
+            @can('manage wallets')
+                <li class="side-menu__divider">
+                    ASSETS
+                </li>
+                <li>
+                    <a href="#" class="side-menu__link">
+                        <i data-tw-merge="" data-lucide="wallet" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">Wallets</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="side-menu__link">
+                        <i data-tw-merge="" data-lucide="arrow-right-left"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">Transactions</div>
+                    </a>
+                </li>
+            @endcan
 
-            <li class="side-menu__divider">
-                P2P TRADING
-            </li>
-            <li>
-                <a href="#" class="side-menu__link">
-                    <i data-tw-merge="" data-lucide="megaphone" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">Advertisements</div>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="side-menu__link">
-                    <i data-tw-merge="" data-lucide="shopping-cart" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">Trades</div>
-                </a>
-            </li>
+            @can('manage p2p')
+                <li class="side-menu__divider">
+                    P2P TRADING
+                </li>
+                <li>
+                    <a href="#" class="side-menu__link">
+                        <i data-tw-merge="" data-lucide="megaphone" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">Advertisements</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="side-menu__link">
+                        <i data-tw-merge="" data-lucide="shopping-cart"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">Trades</div>
+                    </a>
+                </li>
+            @endcan
 
-            <li class="side-menu__divider">
-                USER MANAGEMENT
-            </li>
-            <li>
-                <a href="#" class="side-menu__link">
-                    <i data-tw-merge="" data-lucide="users" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">User List</div>
-                </a>
-            </li>
-            <li>
-                <a href="#" class="side-menu__link">
-                    <i data-tw-merge="" data-lucide="shield-check" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
-                    <div class="side-menu__link__title">KYC Verifications</div>
-                </a>
-            </li>
+            @canany(['manage roles', 'manage kyc'])
+                <li class="side-menu__divider">
+                    USER MANAGEMENT
+                </li>
+            @endcanany
+
+            @can('manage roles')
+                <li>
+                    <a href="#" class="side-menu__link">
+                        <i data-tw-merge="" data-lucide="users" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">User List</div>
+                    </a>
+                </li>
+            @endcan
+
+            @can('manage kyc')
+                <li>
+                    <a href="#" class="side-menu__link">
+                        <i data-tw-merge="" data-lucide="shield-check" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">KYC Verifications</div>
+                    </a>
+                </li>
+            @endcan
+
+            @can('manage roles')
+                <li>
+                    <a href="{{ route('admin.roles.index') }}"
+                        class="side-menu__link {{ request()->routeIs('admin.roles.index') ? 'side-menu__link--active' : '' }}">
+                        <i data-tw-merge="" data-lucide="key" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
+                        <div class="side-menu__link__title">Roles & Permissions</div>
+                    </a>
+                </li>
+            @endcan
 
             <li class="side-menu__divider">
                 SETTINGS
             </li>
             <li>
-                <a href="{{ route('profile.edit') }}" class="side-menu__link {{ request()->routeIs('profile.edit') ? 'side-menu__link--active' : '' }}">
+                <a href="{{ route('profile.edit') }}"
+                    class="side-menu__link {{ request()->routeIs('profile.edit') ? 'side-menu__link--active' : '' }}">
                     <i data-tw-merge="" data-lucide="user" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
                     <div class="side-menu__link__title">Profile Info</div>
                 </a>
             </li>
             <li>
-                <a href="{{ route('user-password.edit') }}" class="side-menu__link {{ request()->routeIs('user-password.edit') ? 'side-menu__link--active' : '' }}">
+                <a href="{{ route('user-password.edit') }}"
+                    class="side-menu__link {{ request()->routeIs('user-password.edit') ? 'side-menu__link--active' : '' }}">
                     <i data-tw-merge="" data-lucide="lock" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
                     <div class="side-menu__link__title">Security</div>
                 </a>
             </li>
             <li>
-                <a href="{{ route('two-factor.show') }}" class="side-menu__link {{ request()->routeIs('two-factor.show') ? 'side-menu__link--active' : '' }}">
+                <a href="{{ route('two-factor.show') }}"
+                    class="side-menu__link {{ request()->routeIs('two-factor.show') ? 'side-menu__link--active' : '' }}">
                     <i data-tw-merge="" data-lucide="fingerprint" class="stroke-[1] w-5 h-5 side-menu__link__icon"></i>
                     <div class="side-menu__link__title">Two-factor Auth</div>
                 </a>

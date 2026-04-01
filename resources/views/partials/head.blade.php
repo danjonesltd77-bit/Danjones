@@ -1,9 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-<meta charset="utf-8">
-<meta name="csrf-token" content="UTDQHUMnQs9GC9VYhC9EaF5Db5U3oNpH3LpUisuu">
-{{-- <meta name="viewport" content="width=device-width, initial-scale=1"> --}}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="description"
     content="Tailwise admin is super flexible, powerful, clean & modern responsive tailwind admin template with unlimited possibilities.">
 <meta name="keywords"
