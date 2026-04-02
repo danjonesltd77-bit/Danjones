@@ -6,7 +6,7 @@
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/**/*.blade.php';
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -56,19 +56,19 @@
 /* Force dark mode background on entire canvas */
 html.dark, html.dark body {
     background-color: var(--color-zinc-950) !important;
-    color: var(--color-zinc-100) !important;
+    color: var(--color-zinc-100);
 }
 
 /* Force dark mode background on content area even if theme script adds mode--light */
 .dark .content.mode {
     background-color: var(--color-zinc-950) !important;
-    color: var(--color-zinc-100) !important;
+    color: var(--color-zinc-100);
 }
 
 .dark .box {
     background-color: var(--color-zinc-900) !important;
     border-color: var(--color-zinc-800) !important;
-    color: var(--color-zinc-100) !important;
+    color: var(--color-zinc-100);
 }
 
 .dark .side-menu {

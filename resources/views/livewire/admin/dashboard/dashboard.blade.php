@@ -100,7 +100,7 @@
         <!-- Latest Data Lists -->
         <div class="col-span-12 grid grid-cols-12 gap-x-6 gap-y-10">
             <!-- Latest Users -->
-            <div class="col-span-12 xl:col-span-12 flex flex-col gap-y-4">
+            <div class="col-span-12 xl:col-span-6 flex flex-col gap-y-4">
                 <div class="flex h-10 items-center justify-between">
                     <div class="text-base font-medium ">Recent Users</div>
                     <a href="{{ route('admin.users.index') }}" class="text-primary hover:underline text-sm"
@@ -113,7 +113,7 @@
             </div>
 
             <!-- Latest Transactions -->
-            <div class="col-span-12 xl:col-span-12 flex flex-col gap-y-4">
+            <div class="col-span-12 xl:col-span-6 flex flex-col gap-y-4">
                 <div class="flex h-10 items-center justify-between">
                     <div class="text-base font-medium">Recent Transactions</div>
                     <a href="{{ route('admin.transactions.index') }}" class="text-primary hover:underline text-sm"
