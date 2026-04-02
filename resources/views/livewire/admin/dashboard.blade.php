@@ -101,9 +101,9 @@
             <!-- Latest Users -->
             <div class="col-span-12 xl:col-span-6 flex flex-col gap-y-4">
                 <div class="flex h-10 items-center justify-between">
-                    <div class="text-base font-medium group-[.mode--light]:text-white">Recent Users</div>
-                    <a href="#"
-                        class="text-primary hover:underline group-[.mode--light]:text-white/80 group-[.mode--light]:hover:text-white text-sm">View
+                    <div class="text-base font-medium ">Recent Users</div>
+                    <a href="{{ route('admin.users.index') }}"
+                        class="text-primary hover:underline text-sm" wire:navigate>View
                         All Users</a>
                 </div>
                 <div class="box box--stacked p-0">
@@ -114,9 +114,9 @@
             <!-- Latest Transactions -->
             <div class="col-span-12 xl:col-span-6 flex flex-col gap-y-4">
                 <div class="flex h-10 items-center justify-between">
-                    <div class="text-base font-medium group-[.mode--light]:text-white">Recent Transactions</div>
-                    <a href="#"
-                        class="text-primary hover:underline group-[.mode--light]:text-white/80 group-[.mode--light]:hover:text-white text-sm">View
+                    <div class="text-base font-medium">Recent Transactions</div>
+                    <a href="{{ route('admin.transactions.index') }}"
+                        class="text-primary hover:underline text-sm" wire:navigate>View
                         All Transactions</a>
                 </div>
                 <div class="box box--stacked p-0">

@@ -1,4 +1,13 @@
-<div class="overflow-x-auto overflow-y-hidden">
+<div>
+    @if($showSearch)
+        <div class="flex flex-col p-5 border-b sm:flex-row sm:items-center border-slate-200/60 dark:border-darkmode-400">
+            <div class="relative w-full text-slate-500 sm:w-72">
+                <input wire:model.live.debounce.300ms="search" type="text" class="block w-full px-4 py-2 pr-10 text-sm transition duration-200 border rounded-[0.6rem] border-slate-300/80 bg-white/70 focus:ring-4 focus:ring-primary/20 focus:border-primary/50 outline-none" placeholder="Search transactions...">
+                <i data-lucide="search" class="absolute inset-y-0 right-0 w-4 h-4 my-auto mr-3"></i>
+            </div>
+        </div>
+    @endif
+    <div class="overflow-x-auto overflow-y-hidden">
     <table class="w-full text-left">
         <thead class="border-b border-slate-200/60 transition-colors dark:border-darkmode-400">
             <tr>
@@ -51,4 +60,10 @@
             @endforelse
         </tbody>
     </table>
+    @if($paginated)
+        <div class="px-5 py-4 border-t border-slate-200/60 dark:border-darkmode-400">
+            {{ $this->transactions->links() }}
+        </div>
+    @endif
+</div>
 </div>
