@@ -15,7 +15,7 @@
                 <tr>
                     <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Name</th>
                     <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Email</th>
-                    <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Roles</th>
+                    <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Naira Balance</th>
                     <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-right">Joined</th>
                 </tr>
             </thead>
@@ -37,15 +37,7 @@
                             {{ $user->email }}
                         </td>
                         <td class="px-5 py-4 whitespace-nowrap text-center">
-                            <div class="flex items-center justify-center gap-1.5 flex-wrap">
-                                @forelse($user->roles as $role)
-                                    <span
-                                        class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium uppercase tracking-wider">{{ $role->name }}</span>
-                                @empty
-                                    <span
-                                        class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 text-[10px] font-medium uppercase tracking-wider">User</span>
-                                @endforelse
-                            </div>
+                            {{ $user->naira_balance }}
                         </td>
                         <td class="px-5 py-4 whitespace-nowrap text-slate-500 text-right text-sm">
                             {{ $user->created_at->format('M d, Y') }}

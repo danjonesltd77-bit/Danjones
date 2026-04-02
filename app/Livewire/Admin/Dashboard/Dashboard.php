@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Admin;
+namespace App\Livewire\Admin\Dashboard;
 
 use App\Domains\P2P\Models\P2PAdvertisement;
 use App\Domains\P2P\Models\P2PTrade;
@@ -51,6 +51,7 @@ class Dashboard extends Component
 
     public function render()
     {
-        return view('livewire.admin.dashboard')->layout('layouts.app');
+        return view('livewire.admin.dashboard.dashboard')->layout('layouts.app');
     }
 }
+

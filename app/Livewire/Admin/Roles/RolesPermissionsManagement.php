@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Admin;
+namespace App\Livewire\Admin\Roles;
 
 use App\Models\User;
 use Livewire\Attributes\Computed;
@@ -128,7 +128,8 @@ class RolesPermissionsManagement extends Component
 
     public function render()
     {
-        return view('livewire.admin.roles-permissions-management')
+        return view('livewire.admin.roles.roles-permissions-management')
             ->layout('layouts.app');
     }
 }
+
