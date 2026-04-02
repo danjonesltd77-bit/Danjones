@@ -2,11 +2,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="description"
-    content="Tailwise admin is super flexible, powerful, clean & modern responsive tailwind admin template with unlimited possibilities.">
+    content="Echo Crypto Admin Dashboard is a professional, high-end platform for digital asset management, featuring real-time analytics and secure operations.">
 <meta name="keywords"
-    content="admin template, Tailwise Admin Template, dashboard template, flat admin template, responsive admin template, web app">
-<meta name="author" content="LEFT4CODE">
-<title>Tailwise - Admin Dashboard Template</title>
+    content="crypto, dashboard, admin, trading, wallet management, digital assets, echo, premium admin">
+<meta name="author" content="DJWC">
+<title>Echo - Crypto Admin Dashboard</title>
 <!-- BEGIN: CSS Assets-->
 
 <link rel="stylesheet" href="{{ asset('dist/css/vendors/tippy.css') }}">
