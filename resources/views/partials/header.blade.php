@@ -81,6 +81,11 @@
              <!-- BEGIN: Notification & User Menu -->
              <div class="flex flex-1 items-center">
                  <div class="ml-auto flex items-center gap-1">
+                     <a class="rounded-full p-2 text-white hover:bg-white/5" href="javascript:;"
+                         x-on:click="$store.darkMode.toggle()">
+                         <i x-show="!$store.darkMode.on" data-tw-merge="" data-lucide="moon" class="stroke-[1] h-[18px] w-[18px]"></i>
+                         <i x-show="$store.darkMode.on" data-tw-merge="" data-lucide="sun" class="stroke-[1] h-[18px] w-[18px]"></i>
+                     </a>
                      <a class="rounded-full p-2 text-white hover:bg-white/5" data-tw-toggle="modal"
                          data-tw-target="#activities-panel" href="javascript:;">
                          <i data-tw-merge="" data-lucide="layout-grid" class="stroke-[1] h-[18px] w-[18px]"></i>

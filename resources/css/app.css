@@ -44,7 +44,40 @@
         --color-accent: var(--color-white);
         --color-accent-content: var(--color-white);
         --color-accent-foreground: var(--color-neutral-800);
+
+        /* Custom Dark Mode Overrides */
+        --bg-main: var(--color-zinc-950);
+        --bg-card: var(--color-zinc-900);
+        --text-main: var(--color-zinc-100);
+        --border-main: var(--color-zinc-800);
     }
+}
+
+/* Force dark mode background on entire canvas */
+html.dark, html.dark body {
+    background-color: var(--color-zinc-950) !important;
+    color: var(--color-zinc-100) !important;
+}
+
+/* Force dark mode background on content area even if theme script adds mode--light */
+.dark .content.mode {
+    background-color: var(--color-zinc-950) !important;
+    color: var(--color-zinc-100) !important;
+}
+
+.dark .box {
+    background-color: var(--color-zinc-900) !important;
+    border-color: var(--color-zinc-800) !important;
+    color: var(--color-zinc-100) !important;
+}
+
+.dark .side-menu {
+    background-color: var(--color-zinc-950) !important;
+}
+
+.dark .side-menu .side-menu__link--active {
+    background-color: var(--color-zinc-900) !important;
+    border-color: var(--color-zinc-800) !important;
 }
 
 @layer base {
