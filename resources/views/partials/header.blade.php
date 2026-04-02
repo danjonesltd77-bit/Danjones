@@ -13,7 +13,7 @@
                      <i data-tw-merge="" data-lucide="search" class="stroke-[1] h-[18px] w-[18px]"></i>
                  </a>
              </div>
-              <!-- BEGIN: Breadcrumb -->
+             <!-- BEGIN: Breadcrumb -->
              <nav aria-label="breadcrumb" class="flex hidden flex-1 xl:block">
                  <ol class="flex items-center text-theme-1 dark:text-slate-300 text-white/90">
                      <li class="">
@@ -69,15 +69,14 @@
                                  . Please try a different search term or check your
                                  spelling.
                              </div>
-                         </div                         <div class="hidden group-[.global-search--show-result]:block">
-                             <div class="px-5 py-4 text-center text-slate-500">
-                                 Search for users, wallets, or transactions...
-                             </div>
                          </div>
->
+                         <div class="px-5 py-4 text-center text-slate-500">
+                             Search for users, wallets, or transactions...
+                         </div>
                      </div>
                  </div>
              </div>
+
              <!-- END: Search -->
              <!-- BEGIN: Notification & User Menu -->
              <div class="flex flex-1 items-center">
@@ -97,10 +96,10 @@
                  <div data-tw-merge="" data-tw-placement="bottom-end" class="dropdown relative ml-5">
                      <button data-tw-toggle="dropdown" aria-expanded="false"
                          class="cursor-pointer image-fit h-[36px] w-[36px] overflow-hidden rounded-full border-[3px] border-white/[0.15]">
-                         <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&color=7F9CF5&background=EBF4FF" alt="{{ Auth::user()->name }}">
+                         <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&color=7F9CF5&background=EBF4FF"
+                             alt="{{ Auth::user()->name }}">
                      </button>
-                     <div data-transition="" data-selector=".show"
-                         data-enter="transition-all ease-linear duration-150"
+                     <div data-transition="" data-selector=".show" data-enter="transition-all ease-linear duration-150"
                          data-enter-from="absolute !mt-5 invisible opacity-0 translate-y-1"
                          data-enter-to="!mt-1 visible opacity-100 translate-y-0"
                          data-leave="transition-all ease-linear duration-150"
@@ -174,10 +173,10 @@
                                      data-tw-merge="" data-lucide="shield-check" class="stroke-[1] mr-2 h-4 w-4"></i>
                                  Mark all as
                                  read</button>
-                         </div>                         <div data-tw-merge="" class="overflow-y-auto flex-1 p-5 text-center text-slate-500">
+                         </div>
+                         <div data-tw-merge="" class="overflow-y-auto flex-1 p-5 text-center text-slate-500">
                              No new notifications.
                          </div>
->
                      </div>
                  </div>
              </div>

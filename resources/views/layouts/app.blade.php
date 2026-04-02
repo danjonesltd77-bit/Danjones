@@ -18,15 +18,15 @@
                         <i data-tw-merge="" data-lucide="x" class="stroke-[1] h-8 w-8 text-white"></i>
                     </a>
                 </div>
-               @include('partials.sidebar')
+                @include('partials.sidebar')
 
 
-               @include('partials.header')
+                @include('partials.header')
             </div>
             <div
                 class="content transition-[margin,width] duration-100 xl:pl-3.5 pt-[54px] pb-16 relative z-10 group mode content--compact xl:ml-[275px] mode--light [&.content--compact]:xl:ml-[91px]">
                 <div class="mt-16 px-5">
-                   {{ $slot }}
+                    {{ $slot }}
                 </div>
             </div>
         </div>

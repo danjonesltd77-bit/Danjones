@@ -27,8 +27,16 @@
     --color-accent-content: var(--color-neutral-800);
     --color-accent-foreground: var(--color-white);
 
-    --color-theme-1: rgb(3 4 94);
-    --color-theme-2: rgb(12 74 110);
+    --color-theme-1: 3 4 94;
+    --color-theme-2: 12 74 110;
+}
+
+@layer base {
+    .background::before {
+        height: 370px !important;
+        width: 100vw !important;
+        background-image: linear-gradient(to top, rgb(var(--color-theme-1) / 0.8), rgb(var(--color-theme-2))) !important;
+    }
 }
 
 @layer theme {
@@ -55,7 +63,7 @@
 }
 
 [data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+    @apply !mb-0 !leading-tight;
 }
 
 input:focus[data-flux-control],
