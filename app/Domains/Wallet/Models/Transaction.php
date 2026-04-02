@@ -2,6 +2,7 @@
 
 namespace App\Domains\Wallet\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -36,5 +37,15 @@ class Transaction extends Model
     public function wallet()
     {
         return $this->morphTo('wallet', 'wallet_type', 'wallet_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class);
     }
 }
