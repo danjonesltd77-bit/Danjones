@@ -4,6 +4,7 @@ use App\Livewire\Admin\Dashboard\Dashboard;
 use App\Livewire\Admin\Roles\RolesPermissionsManagement;
 use App\Livewire\Admin\Transactions\TransactionsManagement;
 use App\Livewire\Admin\Users\UsersManagement;
+use App\Livewire\Admin\Users\UserView;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->name('admin.')->prefix('admin')->group(function () {
@@ -11,6 +12,7 @@ Route::middleware(['auth', 'verified'])->name('admin.')->prefix('admin')->group(
 
     Route::prefix('users')->group(function () {
         Route::get('', UsersManagement::class)->name('users.index');
+        Route::get('{user}', UserView::class)->name('users.show');
     });
 
     Route::prefix('transactions')->group(function () {

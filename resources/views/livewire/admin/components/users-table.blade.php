@@ -17,6 +17,7 @@
                     <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Email</th>
                     <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Naira Balance</th>
                     <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-right">Joined</th>
+                    <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,10 +43,15 @@
                         <td class="px-5 py-4 whitespace-nowrap text-slate-500 text-right text-sm">
                             {{ $user->created_at->format('M d, Y') }}
                         </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-center">
+                            <a wire:navigate href="{{ route('admin.users.show', $user) }}" class="flex items-center justify-center text-primary whitespace-nowrap dark:text-slate-300 hover:underline">
+                                <i data-lucide="eye" class="w-4 h-4 mr-1"></i> View
+                            </a>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="px-5 py-10 text-center text-slate-400">
+                        <td colspan="5" class="px-5 py-10 text-center text-slate-400">
                             <div class="flex flex-col items-center justify-center">
                                 <i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-20"></i>
                                 <p>No platform users found.</p>

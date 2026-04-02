@@ -13,7 +13,9 @@
             <tr>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">User</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Type</th>
+                <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Action</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Amount</th>
+                <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">USD Value</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Status</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-right">Date</th>
             </tr>
@@ -34,10 +36,16 @@
                 <td class="px-5 py-4 whitespace-nowrap capitalize text-slate-500 text-sm">
                     {{ str_replace('_', ' ', $tx->type?->value ?? 'unknown') }}
                 </td>
+                <td class="px-5 py-4 whitespace-nowrap capitalize text-slate-500 text-sm">
+                    {{ str_replace('_', ' ', $tx->action?->value ?? 'unknown') }}
+                </td>
                 <td class="px-5 py-4 whitespace-nowrap">
                     <div class="font-medium {{ in_array(strtolower($tx->type?->value ?? ''), ['credit', 'deposit']) ? 'text-success' : 'text-danger' }}">
                         {{ in_array(strtolower($tx->type?->value ?? ''), ['credit', 'deposit']) ? '+' : '-' }}{{ number_format($tx->amount, 8) }} {{ $tx->currency ? $tx->currency->symbol : '' }}
                     </div>
+                </td>
+                <td class="px-5 py-4 whitespace-nowrap">
+                    ${{ number_format($tx->usd, 2) }}
                 </td>
                 <td class="px-5 py-4 whitespace-nowrap text-center">
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider {{ strtolower($tx->status?->value ?? '') == 'completed' ? 'bg-success/10 text-success' : (strtolower($tx->status?->value ?? '') == 'pending' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger') }}">
@@ -45,7 +53,7 @@
                     </span>
                 </td>
                 <td class="px-5 py-4 whitespace-nowrap text-slate-500 text-right text-xs">
-                    {{ $tx->created_at->format('M d, Y H:i') }}
+                    {{ $tx->created_at->format('M d, Y h:i A') }}
                 </td>
             </tr>
             @empty
