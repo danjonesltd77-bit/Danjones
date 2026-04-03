@@ -3,7 +3,7 @@
      <div
          class="top-bar absolute left-0 xl:left-3.5 right-0 h-full mx-5 group before:content-[''] before:absolute before:top-0 before:inset-x-0 before:-mt-[15px] before:h-[20px] before:backdrop-blur">
          <div
-             class="box group-[.top-bar--active]:box container flex h-full w-full items-center border-transparent bg-transparent shadow-none transition-[padding,background-color,border-color] duration-300 ease-in-out group-[.top-bar--active]:border-transparent group-[.top-bar--active]:bg-transparent group-[.top-bar--active]:bg-gradient-to-r group-[.top-bar--active]:from-theme-1 group-[.top-bar--active]:to-theme-2 group-[.top-bar--active]:px-5">
+             class="box group-[.top-bar--active]:box container flex h-full w-full items-center border-transparent bg-transparent shadow-none transition-[padding,background-color,border-color] duration-300 ease-in-out group-[.top-bar--active]:border-transparent group-[.top-bar--active]:bg-gradient-to-r! group-[.top-bar--active]:from-[#03045e]! group-[.top-bar--active]:to-[#0c4a6e]! group-[.top-bar--active]:px-5">
              <div class="flex items-center gap-1 xl:hidden">
                  <a class="open-mobile-menu rounded-full p-2 text-white hover:bg-white/5" href="">
                      <i data-tw-merge="" data-lucide="align-justify" class="stroke-[1] h-[18px] w-[18px]"></i>
@@ -83,8 +83,10 @@
                  <div class="ml-auto flex items-center gap-1">
                      <a class="rounded-full p-2 text-white hover:bg-white/5" href="javascript:;"
                          x-on:click="$store.darkMode.toggle()">
-                         <i x-show="!$store.darkMode.on" data-tw-merge="" data-lucide="moon" class="stroke-[1] h-[18px] w-[18px]"></i>
-                         <i x-show="$store.darkMode.on" data-tw-merge="" data-lucide="sun" class="stroke-[1] h-[18px] w-[18px]"></i>
+                         <i x-show="!$store.darkMode.on" data-tw-merge="" data-lucide="moon"
+                             class="stroke-[1] h-[18px] w-[18px]"></i>
+                         <i x-show="$store.darkMode.on" data-tw-merge="" data-lucide="sun"
+                             class="stroke-[1] h-[18px] w-[18px]"></i>
                      </a>
                      <a class="rounded-full p-2 text-white hover:bg-white/5" data-tw-toggle="modal"
                          data-tw-target="#activities-panel" href="javascript:;">

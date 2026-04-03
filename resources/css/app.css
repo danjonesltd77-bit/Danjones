@@ -54,7 +54,8 @@
 }
 
 /* Force dark mode background on entire canvas */
-html.dark, html.dark body {
+html.dark,
+html.dark body {
     background-color: var(--color-zinc-950) !important;
     color: var(--color-zinc-100);
 }

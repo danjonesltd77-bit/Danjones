@@ -6,13 +6,14 @@
 <meta name="keywords" content="crypto, dashboard, admin, trading, wallet management, digital assets, echo, premium admin">
 <meta name="author" content="DJWC">
 <title>Echo - Crypto Admin Dashboard</title>
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+
 <!-- BEGIN: CSS Assets-->
 <link rel="stylesheet" href="{{ asset('dist/css/vendors/tippy.css') }}">
 <link rel="stylesheet" href="{{ asset('dist/css/vendors/simplebar.css') }}">
 <link rel="stylesheet" href="{{ asset('dist/css/themes/echo.css') }}">
 <link rel="stylesheet" href="{{ asset('dist/css/app.css') }}">
 <!-- END: CSS Assets-->
-@vite(['resources/css/app.css', 'resources/js/app.js'])
 
 <script>
     (function() {

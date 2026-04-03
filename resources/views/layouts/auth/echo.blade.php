@@ -9,6 +9,11 @@
             --color-theme-2: 12 74 110;
             --color-primary: 3 4 94;
         }
+
+        /* Explicit gradient bypass to prevent Tailwind v4 variable parsing bugs on pseudo elements */
+        .auth-brand-bg::before {
+            background-image: linear-gradient(to bottom, #03045e, #0c4a6e) !important;
+        }
     </style>
 </head>
 <body class="bg-slate-100 antialiased dark:bg-darkmode-600">
@@ -16,7 +21,7 @@
         <div class="relative z-50 h-full col-span-12 p-7 sm:p-14 bg-white rounded-2xl lg:bg-transparent lg:pr-10 lg:col-span-5 xl:pr-24 2xl:col-span-4 lg:p-0 before:content-[''] before:absolute before:inset-0 before:-mb-3.5 before:bg-white/40 before:rounded-2xl before:mx-5">
             <div class="relative z-10 flex flex-col justify-center w-full h-full py-2 lg:py-32">
                 <div class="flex h-[55px] w-[55px] items-center justify-center rounded-[0.8rem] border border-primary/30">
-                    <div class="relative flex h-[50px] w-[50px] items-center justify-center rounded-[0.6rem] bg-white bg-gradient-to-b from-theme-1/90 to-theme-2/90 overflow-hidden text-white">
+                    <div class="relative flex h-[50px] w-[50px] items-center justify-center rounded-[0.6rem] bg-white overflow-hidden text-white" style="background-image: linear-gradient(to bottom, #03045e, #0c4a6e);">
                         <x-app-logo-icon class="size-8 fill-current" />
                     </div>
                 </div>
@@ -30,7 +35,7 @@
     <!-- Background Layer -->
     <div class="container fixed inset-0 grid h-screen w-screen grid-cols-12 pl-14 pr-12 lg:max-w-[1550px] xl:px-24 2xl:max-w-[1750px] pointer-events-none">
         <div class="relative h-screen col-span-12 lg:col-span-5 2xl:col-span-4 z-20 after:bg-white after:hidden after:lg:block after:content-[''] after:absolute after:right-0 after:inset-y-0 after:bg-gradient-to-b after:from-white after:to-slate-100/80 after:w-[800%] after:rounded-[0_1.2rem_1.2rem_0/0_1.7rem_1.7rem_0] before:content-[''] before:hidden before:lg:block before:absolute before:right-0 before:inset-y-0 before:my-6 before:bg-gradient-to-b before:from-white/10 before:to-slate-50/10 before:bg-white/50 before:w-[800%] before:-mr-4 before:rounded-[0_1.2rem_1.2rem_0/0_1.7rem_1.7rem_0]"></div>
-        <div class="h-full col-span-7 2xl:col-span-8 lg:relative before:content-[''] before:absolute before:lg:-ml-10 before:left-0 before:inset-y-0 before:bg-gradient-to-b before:from-theme-1 before:to-theme-2 before:w-screen before:lg:w-[800%]">
+        <div class="auth-brand-bg h-full col-span-7 2xl:col-span-8 lg:relative before:content-[''] before:absolute before:lg:-ml-10 before:left-0 before:inset-y-0 before:w-screen before:lg:w-[800%]">
             <div class="sticky top-0 z-10 flex-col justify-center hidden h-screen ml-16 lg:flex xl:ml-28 2xl:ml-36 pointer-events-auto">
                 <div class="text-[2.6rem] font-medium leading-[1.4] text-white xl:text-5xl xl:leading-[1.2]">
                     Embrace Excellence <br> in Crypto Management
