@@ -5,6 +5,7 @@ namespace App\Providers;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Number;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        Number::macro('crypto', function ($amount, $decimals = 8) {
+            return rtrim(rtrim(number_format((float) $amount, $decimals, '.', ','), '0'), '.');
+        });
 
         // Implicitly grant "super-admin" role all permissions
         // This handles task 3 (bypassing permissions checks for Super Admin using a Gate interceptor)

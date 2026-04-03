@@ -24,7 +24,7 @@ class UsersTable extends Component
     #[Computed]
     public function users()
     {
-        $query = User::latest();
+        $query = User::with('nairaWallet')->latest();
 
         if ($this->search) {
             $query->where(function ($q) {

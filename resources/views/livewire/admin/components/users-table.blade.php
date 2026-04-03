@@ -37,8 +37,8 @@
                         <td class="px-5 py-4 whitespace-nowrap text-slate-500 text-center">
                             {{ $user->email }}
                         </td>
-                        <td class="px-5 py-4 whitespace-nowrap text-center">
-                            {{ $user->naira_balance }}
+                        <td class="px-5 py-4 whitespace-nowrap text-center font-medium">
+                            ₦{{ crypto_format($user->nairaWallet?->balance ?? 0, 2) }}
                         </td>
                         <td class="px-5 py-4 whitespace-nowrap text-slate-500 text-right text-sm">
                             {{ $user->created_at->format('M d, Y') }}

@@ -24,7 +24,7 @@
                         class="box mt-10 rounded-[0.6rem] border border-dashed border-slate-300/80 px-4 py-2.5 shadow-sm">
                         <div class="flex items-center">
                             <div class="text-2xl font-medium leading-tight text-slate-800 dark:text-slate-300">
-                                {{ number_format($this->totalUsers) }}</div>
+                                {{ crypto_format($this->totalUsers, 0) }}</div>
                         </div>
                         <div class="mt-1 text-sm text-slate-500">Registered Accounts</div>
                     </div>
@@ -46,7 +46,7 @@
                         class="box mt-10 rounded-[0.6rem] border border-dashed border-slate-300/80 px-4 py-2.5 shadow-sm">
                         <div class="flex items-center">
                             <div class="text-2xl font-medium leading-tight text-slate-800 dark:text-slate-300">
-                                {{ number_format($this->totalTransactions) }}</div>
+                                {{ crypto_format($this->totalTransactions, 0) }}</div>
                         </div>
 
                         <div class="mt-1 text-sm text-slate-500">Platform Payments</div>
@@ -68,7 +68,7 @@
                         class="box mt-10 rounded-[0.6rem] border border-dashed border-slate-300/80 px-4 py-2.5 shadow-sm">
                         <div class="flex items-center">
                             <div class="text-2xl font-medium leading-tight text-slate-800 dark:text-slate-300">
-                                {{ number_format($this->totalP2PTrades) }}</div>
+                                {{ crypto_format($this->totalP2PTrades, 0) }}</div>
                         </div>
                         <div class="mt-1 text-sm text-slate-500">Completed Orders</div>
                     </div>
@@ -89,7 +89,7 @@
                         class="box mt-10 rounded-[0.6rem] border border-dashed border-slate-300/80 px-4 py-2.5 shadow-sm">
                         <div class="flex items-center">
                             <div class="text-2xl font-medium leading-tight text-slate-800 dark:text-slate-300">
-                                {{ number_format($this->totalP2PAds) }}</div>
+                                {{ crypto_format($this->totalP2PAds, 0) }}</div>
                         </div>
                         <div class="mt-1 text-sm text-slate-500">Active Advertisements</div>
                     </div>

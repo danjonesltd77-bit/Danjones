@@ -58,7 +58,8 @@
                                     <div>
                                         <div class="text-sm font-medium text-slate-500 uppercase tracking-wider">{{ $wallet->currency->name }}</div>
                                         <div class="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">
-                                            {{ number_format($wallet->balance, 8) }} <span class="text-sm font-normal text-slate-400">{{ $wallet->currency->symbol }}</span>
+                                            {{ crypto_format($wallet->balance, $wallet->currency->decimal ?? 8) }} 
+                                            <span class="text-sm font-normal text-slate-400">{{ $wallet->currency->symbol }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -166,11 +167,11 @@
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap text-right">
                                     <div class="text-sm font-bold {{ $tx->type->value == 'credit' ? 'text-success' : 'text-danger' }}">
-                                        {{ $tx->type->value == 'credit' ? '+' : '-' }} {{ number_format($tx->amount, 8) }}
+                                        {{ $tx->type->value == 'credit' ? '+' : '-' }} {{ crypto_format($tx->amount, $tx->currency?->decimal ?? 8) }}
                                     </div>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap text-right text-sm text-slate-500">
-                                    ${{ number_format($tx->usd, 2) }}
+                                    ${{ crypto_format($tx->usd, 2) }}
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap text-center">
                                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ strtolower($tx->status?->value ?? '') == 'completed' ? 'bg-success/10 text-success' : (in_array(strtolower($tx->status?->value ?? ''), ['pending', 'processing']) ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger') }}">
