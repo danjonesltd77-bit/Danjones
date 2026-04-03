@@ -47,13 +47,6 @@
                     ASSETS
                 </li>
                 <li>
-                    <a href="#" class="side-menu__link">
-                        <i data-tw-merge="" data-lucide="wallet"
-                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
-                        <div class="side-menu__link__title">Wallets</div>
-                    </a>
-                </li>
-                <li>
                     <a wire:navigate href="{{ route('admin.transactions.index') }}"
                         class="side-menu__link {{ request()->routeIs('admin.transactions.index') ? 'side-menu__link--active' : '' }}">
                         <i data-tw-merge="" data-lucide="arrow-right-left"

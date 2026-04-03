@@ -40,44 +40,54 @@ new #[Title('Password settings')] class extends Component {
 }; ?>
 
 <section class="w-full">
-    @include('partials.settings-heading')
-
     <flux:heading class="sr-only">{{ __('Password settings') }}</flux:heading>
 
-    <x-pages::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
-        <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
-            <flux:input
-                wire:model="current_password"
-                :label="__('Current password')"
-                type="password"
-                required
-                autocomplete="current-password"
-            />
-            <flux:input
-                wire:model="password"
-                :label="__('New password')"
-                type="password"
-                required
-                autocomplete="new-password"
-            />
-            <flux:input
-                wire:model="password_confirmation"
-                :label="__('Confirm password')"
-                type="password"
-                required
-                autocomplete="new-password"
-            />
-
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full" data-test="update-password-button">
-                        {{ __('Save') }}
-                    </flux:button>
+    <x-pages::settings.layout :heading="__('Security & Access')" :subheading="__('Keep your account protected with a strong, rotating password')">
+        <form method="POST" wire:submit="updatePassword" class="mt-8 w-full space-y-8">
+            <!-- Current Password -->
+            <div class="space-y-2">
+                <div class="flex items-center space-x-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <i data-lucide="lock" class="w-3 h-3"></i>
+                    <span>Current Password</span>
                 </div>
+                <flux:input wire:model="current_password" type="password" required autocomplete="current-password" class="!bg-slate-50/50 dark:!bg-darkmode-400/30" />
+            </div>
 
-                <x-action-message class="me-3" on="password-updated">
-                    {{ __('Saved.') }}
-                </x-action-message>
+            <!-- New Password -->
+            <div class="space-y-2">
+                <div class="flex items-center space-x-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <i data-lucide="key" class="w-3 h-3"></i>
+                    <span>New Password</span>
+                </div>
+                <flux:input wire:model="password" type="password" required autocomplete="new-password" class="!bg-slate-50/50 dark:!bg-darkmode-400/30" />
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="space-y-2">
+                <div class="flex items-center space-x-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    <i data-lucide="shield-check" class="w-3 h-3"></i>
+                    <span>Confirm New Password</span>
+                </div>
+                <flux:input wire:model="password_confirmation" type="password" required autocomplete="new-password" class="!bg-slate-50/50 dark:!bg-darkmode-400/30" />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between pt-4">
+                <div class="flex items-center gap-4">
+                    <flux:button variant="primary" type="submit" class="px-8 shadow-lg shadow-primary/20">
+                        {{ __('Update Password') }}
+                    </flux:button>
+
+                    <div x-data="{ show: false }" 
+                         x-on:password-updated.window="show = true; setTimeout(() => show = false, 2000)"
+                         x-show="show"
+                         x-transition.out.opacity.duration.1500ms
+                         style="display: none;"
+                         class="flex items-center text-success space-x-2">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span class="text-xs font-bold uppercase tracking-widest">{{ __('Security Updated') }}</span>
+                    </div>
+                </div>
             </div>
         </form>
     </x-pages::settings.layout>
