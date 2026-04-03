@@ -31,6 +31,9 @@ class TransactionsTable extends Component
     public string $type = '';
 
     #[Url]
+    public string $performer = 'user';
+
+    #[Url]
     public ?string $startDate = null;
 
     #[Url]
@@ -43,7 +46,7 @@ class TransactionsTable extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'currencyId', 'status', 'type', 'startDate', 'endDate']);
+        $this->reset(['search', 'currencyId', 'status', 'type', 'performer', 'startDate', 'endDate']);
     }
 
     #[Computed]
@@ -55,12 +58,21 @@ class TransactionsTable extends Component
                 $q->where(function ($sq) {
                     $sq->where('amount', 'like', '%' . $this->search . '%')
                         ->orWhere('reference', 'like', '%' . $this->search . '%')
+                        ->orWhere('description', 'like', '%' . $this->search . '%')
                         ->orWhereHas('user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'));
                 });
             })
             ->when($this->currencyId, fn($q) => $q->where('currency_id', $this->currencyId))
             ->when($this->status, fn($q) => $q->where('status', $this->status))
             ->when($this->type, fn($q) => $q->where('action', $this->type))
+            ->when($this->performer, function($q) {
+                if ($this->performer === 'user') {
+                    return $q->where('user_id', '>', 0);
+                }
+                if ($this->performer === 'system') {
+                    return $q->where('user_id', 0);
+                }
+            })
             ->when($this->startDate, fn($q) => $q->whereDate('created_at', '>=', $this->startDate))
             ->when($this->endDate, fn($q) => $q->whereDate('created_at', '<=', $this->endDate))
             ->latest();

@@ -125,10 +125,18 @@
                     </select>
                 </div>
                 <div class="col-span-12 sm:col-span-6 md:col-span-2">
-                    <input wire:model.live="startDate" type="date" class="w-full h-10 bg-slate-50 dark:bg-darkmode-400 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary" title="Start Date">
+                    <select wire:model.live="type" class="w-full h-10 bg-slate-50 dark:bg-darkmode-400 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary">
+                        <option value="">All Actions</option>
+                        @foreach(\App\Enum\TransactionAction::cases() as $action)
+                            <option value="{{ $action->value }}">{{ $action->label() }}</option>
+                        @endforeach
+                    </select>
                 </div>
-                <div class="col-span-12 sm:col-span-6 md:col-span-2">
-                    <input wire:model.live="endDate" type="date" class="w-full h-10 bg-slate-50 dark:bg-darkmode-400 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary" title="End Date">
+                <div class="col-span-12 sm:col-span-6 md:col-span-1">
+                    <input wire:model.live="startDate" type="date" class="w-full h-10 bg-slate-50 dark:bg-darkmode-400 border-none rounded-lg text-[10px] focus:ring-1 focus:ring-primary" title="Start Date">
+                </div>
+                <div class="col-span-12 sm:col-span-6 md:col-span-1">
+                    <input wire:model.live="endDate" type="date" class="w-full h-10 bg-slate-50 dark:bg-darkmode-400 border-none rounded-lg text-[10px] focus:ring-1 focus:ring-primary" title="End Date">
                 </div>
             </div>
         </div>
@@ -140,11 +148,13 @@
                     <thead>
                         <tr class="bg-slate-50 dark:bg-darkmode-400/50">
                             <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500">Date</th>
+                            <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500">Action Type</th>
                             <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500">Description</th>
                             <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500">Asset</th>
                             <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500 text-right">Amount</th>
                             <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500 text-right">USD</th>
                             <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500 text-center">Status</th>
+                            <th class="px-5 py-3 border-b border-slate-200/60 dark:border-darkmode-400 text-[11px] font-bold uppercase text-slate-500 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200/60 dark:divide-darkmode-400">
@@ -154,9 +164,14 @@
                                     {{ $tx->created_at->format('M d, Y') }}
                                     <div class="text-[10px] opacity-60">{{ $tx->created_at->format('h:i A') }}</div>
                                 </td>
+                                <td class="px-5 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">
+                                        {{ str_replace('_', ' ', $tx->action?->value ?? 'unknown') }}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-mono tracking-tight uppercase">{{ $tx->reference }}</div>
+                                </td>
                                 <td class="px-5 py-4">
-                                    <div class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ $tx->description ?: $tx->action->label() }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono uppercase">{{ $tx->reference }}</div>
+                                    <div class="text-xs text-slate-500 max-w-[150px] truncate">{{ $tx->description ?: '-' }}</div>
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
@@ -177,6 +192,11 @@
                                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ strtolower($tx->status?->value ?? '') == 'completed' ? 'bg-success/10 text-success' : (in_array(strtolower($tx->status?->value ?? ''), ['pending', 'processing']) ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger') }}">
                                         {{ $tx->status?->label() ?? 'Pending' }}
                                     </span>
+                                </td>
+                                <td class="px-5 py-4 whitespace-nowrap text-center">
+                                    <a wire:navigate href="{{ route('admin.transactions.show', $tx) }}" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-darkmode-400 text-primary transition-colors flex items-center justify-center mx-auto" title="View Transaction">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @empty

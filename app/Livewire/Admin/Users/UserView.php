@@ -26,6 +26,9 @@ class UserView extends Component
     public string $status = '';
 
     #[Url]
+    public string $type = '';
+
+    #[Url]
     public ?string $startDate = null;
 
     #[Url]
@@ -48,7 +51,7 @@ class UserView extends Component
 
     public function resetFilters(): void
     {
-        $this->reset(['search', 'currencyId', 'status', 'startDate', 'endDate']);
+        $this->reset(['search', 'currencyId', 'status', 'type', 'startDate', 'endDate']);
     }
 
     #[Computed]
@@ -66,6 +69,7 @@ class UserView extends Component
             })
             ->when($this->currencyId, fn($q) => $q->where('currency_id', $this->currencyId))
             ->when($this->status, fn($q) => $q->where('status', $this->status))
+            ->when($this->type, fn($q) => $q->where('action', $this->type))
             ->when($this->startDate, fn($q) => $q->whereDate('created_at', '>=', $this->startDate))
             ->when($this->endDate, fn($q) => $q->whereDate('created_at', '<=', $this->endDate))
             ->latest()

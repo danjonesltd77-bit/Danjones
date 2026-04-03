@@ -18,11 +18,16 @@ class TransactionView extends Component
     #[Computed]
     public function relatedTransactions()
     {
-        return Transaction::query()
-            ->with(['currency'])
+        $transactions = Transaction::query()
+            ->with(['currency', 'user'])
             ->where('reference', $this->transaction->reference)
             ->where('id', '!=', $this->transaction->id)
             ->get();
+
+        return [
+            'system' => $transactions->filter(fn ($tx) => $tx->user_id === 0),
+            'user' => $transactions->filter(fn ($tx) => $tx->user_id > 0),
+        ];
     }
 
     public function render()

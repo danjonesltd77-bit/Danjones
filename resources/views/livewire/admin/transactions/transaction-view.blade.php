@@ -110,36 +110,109 @@
                 </div>
             </div>
 
-            @if ($this->relatedTransactions->count() > 0)
+            @if (count($this->relatedTransactions['user']) > 0)
                 <div class="box box--stacked p-6 mt-6">
                     <h3 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4 flex items-center">
                         <i data-lucide="link" class="w-4 h-4 mr-2 text-primary"></i>
-                        Linked Transactions
+                        Linked Payments & Transfers
+                    </h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        @foreach ($this->relatedTransactions['user'] as $related)
+                            <div class="p-4 rounded-lg border border-dashed border-slate-200 dark:border-darkmode-400 group">
+                                <div
+                                    class="flex items-center justify-between mb-3 pb-3 border-b border-dashed border-slate-200 dark:border-darkmode-400">
+                                    <div class="flex items-center">
+                                        <div
+                                            class="w-10 h-10 rounded-full bg-slate-100 dark:bg-darkmode-400 flex items-center justify-center mr-3 text-slate-400">
+                                            <i data-lucide="{{ $related->type->value == 'credit' ? 'arrow-down-left' : 'arrow-up-right' }}"
+                                                class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">
+                                                {{ str_replace('_', ' ', $related->action->value) }}</div>
+                                            <div class="text-[10px] text-slate-400">
+                                                {{ $related->created_at->format('M d, Y h:i A') }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-x-4">
+                                        @if($related->user)
+                                            <div class="flex items-center text-right">
+                                                <div class="mr-3">
+                                                    <div class="text-xs font-medium text-slate-700 dark:text-slate-300">{{ $related->user->name }}</div>
+                                                    <div class="text-[10px] text-slate-400">{{ $related->user->email }}</div>
+                                                </div>
+                                                <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                                    {{ $related->user->initials() }}
+                                                </div>
+                                            </div>
+                                        @endif
+                                        <a wire:navigate href="{{ route('admin.transactions.show', $related) }}"
+                                            class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-darkmode-400 text-primary transition-colors"
+                                            title="View Full Details">
+                                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-[10px] text-slate-400 uppercase tracking-wider">Asset
+                                            Value</span>
+                                        <div
+                                            class="text-sm font-bold {{ $related->type->value == 'credit' ? 'text-success' : 'text-danger' }}">
+                                            {{ $related->type->value == 'credit' ? '+' : '-' }}{{ crypto_format($related->amount, $related->currency?->decimal ?? 8) }}
+                                            <span class="text-[10px] text-slate-500">{{ $related->currency->symbol }}</span>
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 font-medium">
+                                            ${{ crypto_format($related->usd, 2) }}</div>
+                                    </div>
+                                    <div class="flex flex-col gap-1 items-end">
+                                        <span class="text-[10px] text-slate-400 uppercase tracking-wider">Progression</span>
+                                        <div class="flex items-center gap-2 text-[11px] font-mono">
+                                            <span
+                                                class="text-slate-400">{{ crypto_format($related->previous_balance, $related->currency?->decimal ?? 8) }}</span>
+                                            <i data-lucide="chevron-right" class="w-3 h-3 text-slate-300"></i>
+                                            <span
+                                                class="font-bold text-slate-600 dark:text-slate-300">{{ crypto_format($related->current_balance, $related->currency?->decimal ?? 8) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            @if (count($this->relatedTransactions['system']) > 0)
+                <div class="box box--stacked p-6 mt-6 bg-slate-50/30 dark:bg-darkmode-400/20">
+                    <h3 class="text-base font-medium text-slate-800 dark:text-slate-200 mb-4 flex items-center">
+                        <i data-lucide="shield-check" class="w-4 h-4 mr-2 text-warning"></i>
+                        Internal Operations & Fees
                     </h3>
                     <div class="grid grid-cols-1 gap-3">
-                        @foreach ($this->relatedTransactions as $related)
-                            <a wire:navigate href="{{ route('admin.transactions.show', $related) }}"
-                                class="flex items-center p-3 rounded-lg border border-dashed border-slate-200 dark:border-darkmode-400 hover:border-primary transition-colors group">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-slate-100 dark:bg-darkmode-400 flex items-center justify-center mr-3 text-slate-400 group-hover:text-primary transition-colors">
-                                    <i data-lucide="{{ $related->type->value == 'credit' ? 'arrow-down-left' : 'arrow-up-right' }}"
-                                        class="w-4 h-4"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">
-                                        {{ str_replace('_', ' ', $related->action->value) }}</div>
-                                    <div class="text-[10px] text-slate-400">{{ $related->created_at->format('M d, Y h:i A') }}
+                        @foreach ($this->relatedTransactions['system'] as $related)
+                            <div
+                                class="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-darkmode-600 border border-slate-200 dark:border-darkmode-400">
+                                <div class="flex items-center">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center mr-3 text-warning">
+                                        <i data-lucide="zap" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">
+                                            {{ str_replace('_', ' ', $related->action->value) }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">
+                                            {{ $related->created_at->format('h:i A') }}</div>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div
-                                        class="text-xs font-bold {{ $related->type->value == 'credit' ? 'text-success' : 'text-danger' }}">
-                                        {{ $related->type->value == 'credit' ? '+' : '-' }}{{ crypto_format($related->amount, $related->currency?->decimal ?? 8) }}
+                                    <div class="text-xs font-bold text-danger">
+                                        -{{ crypto_format($related->amount, $related->currency?->decimal ?? 8) }} <span
+                                            class="text-[10px] text-slate-400">{{ $related->currency->symbol }}</span>
                                     </div>
-                                    <div class="text-[10px] text-slate-400 font-medium">{{ $related->currency->symbol }}
-                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-medium">
+                                        ${{ crypto_format($related->usd, 2) }}</div>
                                 </div>
-                            </a>
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -149,7 +222,7 @@
         <!-- Sidebar Info -->
         <div class="col-span-12 md:col-span-4 flex flex-col gap-y-6">
             <!-- User Context -->
-            @if ($transaction->user)
+            @if ($transaction->user_id > 0 && $transaction->user)
                 <div class="box box--stacked p-6">
                     <h3 class="text-slate-500 font-medium mb-4 flex items-center">
                         User Information

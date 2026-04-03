@@ -40,6 +40,15 @@
                     </select>
                 </div>
 
+                <!-- Performer -->
+                <div class="col-span-12 sm:col-span-6 md:col-span-2">
+                    <select wire:model.live="performer" class="w-full h-10 bg-slate-50 dark:bg-darkmode-400 border-none rounded-lg text-sm focus:ring-1 focus:ring-primary">
+                        <option value="all">All Performers</option>
+                        <option value="user">User Transactions</option>
+                        <option value="system">System Transactions</option>
+                    </select>
+                </div>
+
                 <!-- Reset -->
                 <div class="col-span-12 sm:col-span-6 md:col-span-2 flex items-center justify-end">
                     <button wire:click="resetFilters" class="text-xs text-slate-500 hover:text-primary underline flex items-center">
@@ -70,6 +79,7 @@
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Amount</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Prev. Balance</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Curr. Balance</th>
+                <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap">Description</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center">Status</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-right">Date</th>
                 <th class="px-5 py-4 font-medium text-slate-500 whitespace-nowrap text-center"></th>
@@ -81,10 +91,10 @@
                 <td class="px-5 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center mr-3 text-slate-400">
-                            <i data-lucide="{{ $tx->user ? 'user' : 'settings' }}" class="w-4 h-4"></i>
+                            <i data-lucide="{{ $tx->user_id > 0 ? 'user' : 'settings' }}" class="w-4 h-4"></i>
                         </div>
                         <div class="flex flex-col">
-                            @if($tx->user)
+                            @if($tx->user_id > 0 && $tx->user)
                                 <a wire:navigate href="{{ route('admin.users.show', $tx->user) }}" class="font-medium text-primary hover:underline">
                                     {{ $tx->user->name }}
                                 </a>
@@ -113,6 +123,9 @@
                 </td>
                 <td class="px-5 py-4 whitespace-nowrap font-mono text-sm text-slate-700 dark:text-slate-300">
                     {{ crypto_format($tx->current_balance, $tx->currency?->decimal ?? 8) }}
+                </td>
+                <td class="px-5 py-4 whitespace-nowrap text-slate-500 text-xs max-w-[200px] overflow-hidden text-ellipsis">
+                    {{ $tx->description ?: '-' }}
                 </td>
                 <td class="px-5 py-4 whitespace-nowrap text-center">
                     <span class="px-2.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider {{ strtolower($tx->status?->value ?? '') == 'completed' ? 'bg-success/10 text-success' : (strtolower($tx->status?->value ?? '') == 'pending' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger') }}">
