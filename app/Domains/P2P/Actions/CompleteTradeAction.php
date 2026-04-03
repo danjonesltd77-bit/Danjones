@@ -26,13 +26,17 @@ class CompleteTradeAction
     /**
      * @throws Exception
      */
-    public function execute(User $user, P2PTrade $trade): P2PTrade
+    public function execute(User $user, P2PTrade $trade, bool $isAdmin = false): P2PTrade
     {
-        if ($trade->status !== TradeStatus::PAID && $trade->status !== TradeStatus::PENDING) {
+        if (! $isAdmin && $trade->status !== TradeStatus::PAID && $trade->status !== TradeStatus::PENDING) {
             throw new Exception('Trade cannot be completed from its current state.', 400);
         }
 
-        if ($trade->seller_id !== $user->id) {
+        if ($isAdmin && $trade->status !== TradeStatus::DISPUTED && $trade->status !== TradeStatus::PAID && $trade->status !== TradeStatus::PENDING) {
+            throw new Exception('Admin can only complete pending, paid or disputed trades.', 400);
+        }
+
+        if (! $isAdmin && $trade->seller_id !== $user->id) {
             throw new Exception('Only the seller can release the crypto.', 403);
         }
 

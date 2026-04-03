@@ -66,13 +66,15 @@
                     P2P TRADING
                 </li>
                 <li>
-                    <a href="#" class="side-menu__link">
+                    <a wire:navigate href="{{ route('admin.p2p.ads.index') }}" 
+                        class="side-menu__link {{ request()->routeIs('admin.p2p.ads.index') ? 'side-menu__link--active' : '' }}">
                         <i data-tw-merge="" data-lucide="megaphone" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-300!"></i>
                         <div class="side-menu__link__title">Advertisements</div>
                     </a>
                 </li>
                 <li>
-                    <a href="#" class="side-menu__link">
+                    <a wire:navigate href="{{ route('admin.p2p.trades.index') }}"
+                        class="side-menu__link {{ request()->routeIs('admin.p2p.trades.*') ? 'side-menu__link--active' : '' }}">
                         <i data-tw-merge="" data-lucide="shopping-cart"
                             class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                         <div class="side-menu__link__title">Trades</div>

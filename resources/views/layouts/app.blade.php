@@ -31,6 +31,7 @@
             </div>
         </div>
     </div>
+    @include('partials.toasts')
     <!-- BEGIN: Vendor JS Assets-->
     <script src="{{ asset('dist/js/vendors/dom.js') }}"></script>
     <script src="{{ asset('dist/js/vendors/tailwind-merge.js') }}"></script>

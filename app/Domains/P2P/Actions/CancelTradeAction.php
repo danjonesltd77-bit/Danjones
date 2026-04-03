@@ -18,13 +18,17 @@ class CancelTradeAction
     /**
      * @throws Exception
      */
-    public function execute(?User $user, P2PTrade $trade): P2PTrade
+    public function execute(?User $user, P2PTrade $trade, bool $isAdmin = false): P2PTrade
     {
-        if ($trade->status !== TradeStatus::PENDING && $trade->status !== TradeStatus::PAID) {
+        if (! $isAdmin && $trade->status !== TradeStatus::PENDING && $trade->status !== TradeStatus::PAID) {
             throw new Exception('Only pending or paid trades can be cancelled.', 400);
         }
 
-        if ($user && $trade->buyer_id !== $user->id && $trade->seller_id !== $user->id) {
+        if ($isAdmin && $trade->status !== TradeStatus::PENDING && $trade->status !== TradeStatus::PAID && $trade->status !== TradeStatus::DISPUTED) {
+            throw new Exception('Admin can only cancel pending, paid or disputed trades.', 400);
+        }
+
+        if (! $isAdmin && $user && $trade->buyer_id !== $user->id && $trade->seller_id !== $user->id) {
             throw new Exception('Unauthorized to cancel this trade.', 403);
         }
 

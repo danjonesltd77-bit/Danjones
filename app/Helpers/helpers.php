@@ -15,3 +15,28 @@ if (!function_exists('crypto_format')) {
         return Number::crypto($amount, $decimals);
     }
 }
+
+if (!function_exists('toast')) {
+    /**
+     * Trigger a global toast notification.
+     *
+     * @param string $message
+     * @param string $type
+     * @return void
+     */
+    function toast(string $message, string $type = 'success'): void
+    {
+        if (app()->bound('livewire') && app('livewire')->current()) {
+            // During a Livewire request, dispatch through the current component
+            app('livewire')->current()->dispatch('toast', 
+                message: $message,
+                type: $type,
+            );
+        }
+        
+        session()->flash('toast', [
+            'message' => $message,
+            'type' => $type,
+        ]);
+    }
+}

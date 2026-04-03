@@ -1,6 +1,9 @@
 <?php
 
 use App\Livewire\Admin\Dashboard\Dashboard;
+use App\Livewire\Admin\P2P\AdsManagement;
+use App\Livewire\Admin\P2P\TradesManagement;
+use App\Livewire\Admin\P2P\TradeView;
 use App\Livewire\Admin\Roles\RolesPermissionsManagement;
 use App\Livewire\Admin\Transactions\TransactionsManagement;
 use App\Livewire\Admin\Transactions\TransactionView;
@@ -23,5 +26,11 @@ Route::middleware(['auth', 'verified'])->name('admin.')->prefix('admin')->group(
 
     Route::prefix('roles')->group(function () {
         Route::get('', RolesPermissionsManagement::class)->name('roles.index');
+    });
+
+    Route::prefix('p2p')->name('p2p.')->group(function () {
+        Route::get('ads', AdsManagement::class)->name('ads.index');
+        Route::get('trades', TradesManagement::class)->name('trades.index');
+        Route::get('trades/{trade}', TradeView::class)->name('trades.show');
     });
 });
