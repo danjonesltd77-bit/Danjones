@@ -35,7 +35,8 @@
                 <li>
                     <a wire:navigate href="{{ route('dashboard') }}"
                         class="side-menu__link {{ request()->routeIs('dashboard') ? 'side-menu__link--active' : '' }}">
-                        <i data-tw-merge="" data-lucide="gauge-circle" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                        <i data-tw-merge="" data-lucide="gauge-circle"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                         <div class="side-menu__link__title">Overview</div>
                     </a>
                 </li>
@@ -47,7 +48,8 @@
                 </li>
                 <li>
                     <a href="#" class="side-menu__link">
-                        <i data-tw-merge="" data-lucide="wallet" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                        <i data-tw-merge="" data-lucide="wallet"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                         <div class="side-menu__link__title">Wallets</div>
                     </a>
                 </li>
@@ -59,6 +61,14 @@
                         <div class="side-menu__link__title">Transactions</div>
                     </a>
                 </li>
+                <li>
+                    <a wire:navigate href="{{ route('admin.currencies.index') }}"
+                        class="side-menu__link {{ request()->routeIs('admin.currencies.index') ? 'side-menu__link--active' : '' }}">
+                        <i data-tw-merge="" data-lucide="layers"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400"></i>
+                        <div class="side-menu__link__title">Currencies</div>
+                    </a>
+                </li>
             @endcan
 
             @can('manage p2p')
@@ -66,9 +76,10 @@
                     P2P TRADING
                 </li>
                 <li>
-                    <a wire:navigate href="{{ route('admin.p2p.ads.index') }}" 
+                    <a wire:navigate href="{{ route('admin.p2p.ads.index') }}"
                         class="side-menu__link {{ request()->routeIs('admin.p2p.ads.index') ? 'side-menu__link--active' : '' }}">
-                        <i data-tw-merge="" data-lucide="megaphone" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-300!"></i>
+                        <i data-tw-merge="" data-lucide="megaphone"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-300!"></i>
                         <div class="side-menu__link__title">Advertisements</div>
                     </a>
                 </li>
@@ -102,7 +113,8 @@
             @can('manage kyc')
                 <li>
                     <a href="#" class="side-menu__link">
-                        <i data-tw-merge="" data-lucide="shield-check" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                        <i data-tw-merge="" data-lucide="shield-check"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                         <div class="side-menu__link__title">KYC Verifications</div>
                     </a>
                 </li>
@@ -112,7 +124,8 @@
                 <li>
                     <a wire:navigate href="{{ route('admin.roles.index') }}"
                         class="side-menu__link {{ request()->routeIs('admin.roles.index') ? 'side-menu__link--active' : '' }}">
-                        <i data-tw-merge="" data-lucide="key" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                        <i data-tw-merge="" data-lucide="key"
+                            class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                         <div class="side-menu__link__title">Roles & Permissions</div>
                     </a>
                 </li>
@@ -124,21 +137,24 @@
             <li>
                 <a wire:navigate href="{{ route('profile.edit') }}"
                     class="side-menu__link {{ request()->routeIs('profile.edit') ? 'side-menu__link--active' : '' }}">
-                    <i data-tw-merge="" data-lucide="user" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                    <i data-tw-merge="" data-lucide="user"
+                        class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                     <div class="side-menu__link__title">Profile Info</div>
                 </a>
             </li>
             <li>
                 <a wire:navigate href="{{ route('user-password.edit') }}"
                     class="side-menu__link {{ request()->routeIs('user-password.edit') ? 'side-menu__link--active' : '' }}">
-                    <i data-tw-merge="" data-lucide="lock" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                    <i data-tw-merge="" data-lucide="lock"
+                        class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                     <div class="side-menu__link__title">Security</div>
                 </a>
             </li>
             <li>
                 <a wire:navigate href="{{ route('two-factor.show') }}"
                     class="side-menu__link {{ request()->routeIs('two-factor.show') ? 'side-menu__link--active' : '' }}">
-                    <i data-tw-merge="" data-lucide="fingerprint" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                    <i data-tw-merge="" data-lucide="fingerprint"
+                        class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                     <div class="side-menu__link__title">Two-factor Auth</div>
                 </a>
             </li>

@@ -22,4 +22,14 @@ enum TransactionStatus: string
             self::REFUNDED => 'Refunded',
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::PENDING, self::PROCESSING => 'bg-warning/10 text-warning',
+            self::COMPLETED => 'bg-success/10 text-success',
+            self::FAILED, self::CANCELLED => 'bg-danger/10 text-danger',
+            self::REFUNDED => 'bg-info/10 text-info',
+        };
+    }
 }

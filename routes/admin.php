@@ -1,5 +1,7 @@
 <?php
 
+use App\Livewire\Admin\Currencies\CurrenciesManagement;
+use App\Livewire\Admin\Currencies\CurrencyView;
 use App\Livewire\Admin\Dashboard\Dashboard;
 use App\Livewire\Admin\P2P\AdsManagement;
 use App\Livewire\Admin\P2P\TradesManagement;
@@ -26,6 +28,11 @@ Route::middleware(['auth', 'verified'])->name('admin.')->prefix('admin')->group(
 
     Route::prefix('roles')->group(function () {
         Route::get('', RolesPermissionsManagement::class)->name('roles.index');
+    });
+
+    Route::prefix('currencies')->group(function () {
+        Route::get('', CurrenciesManagement::class)->name('currencies.index');
+        Route::get('{currency}', CurrencyView::class)->name('currencies.show');
     });
 
     Route::prefix('p2p')->name('p2p.')->group(function () {
