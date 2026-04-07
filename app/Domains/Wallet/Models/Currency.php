@@ -9,6 +9,11 @@ class Currency extends Model
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\Domains\Wallet\Models\CurrencyFactory::new();
+    }
+
     protected $guarded = [];
 
     public function parent()

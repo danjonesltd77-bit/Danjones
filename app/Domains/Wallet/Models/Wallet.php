@@ -12,11 +12,17 @@ class Wallet extends Model implements WalletAccountInterface
 {
     use HasFactory;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\Domains\Wallet\Models\WalletFactory::new();
+    }
+
     protected $fillable = [
         'user_id',
         'currency_id',
         'address',
         'balance',
+        'address_balance',
         'index',
         'status',
     ];

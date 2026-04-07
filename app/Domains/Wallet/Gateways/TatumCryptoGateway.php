@@ -16,7 +16,7 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInterface, SupportsWebhooksInterface, GaspumpServiceInterface
+class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterface, MarketDataGatewayInterface, SupportsWebhooksInterface
 {
     private TatumApiClient $apiClient;
 
@@ -28,8 +28,68 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
         $this->settingService = $settingService;
     }
 
-    public function getBalance(string $identifier): float
+    public function getBalance(string $address, Currency $currency): float
     {
+        try {
+            // If it's a token (has a parent currency)
+            if ($currency->parent_id && $currency->parent_id != $currency->id) {
+                $parentChain = Str::lower($currency->parent->name);
+                if ($parentChain === 'dogecoin') {
+                    $parentChain = 'doge';
+                }
+
+                $response = $this->apiClient->get("/blockchain/token/balance/{$parentChain}/{$currency->token_address}/{$address}", is_gaspump: true);
+
+                if ($response->successful()) {
+                    return (float) ($response->json()['balance'] ?? 0);
+                }
+            } else {
+                $chain = Str::lower($currency->name);
+                if ($chain === 'dogecoin') {
+                    $chain = 'doge';
+                }
+
+                switch ($chain) {
+                    case 'bitcoin':
+                    case 'doge':
+                        $response = $this->apiClient->get("/{$chain}/address/balance/{$address}");
+                        if ($response->successful()) {
+                            $data = $response->json();
+
+                            return (float) ($data['incoming'] ?? 0) - (float) ($data['outgoing'] ?? 0);
+                        }
+                        break;
+
+                    case 'ethereum':
+                        $response = $this->apiClient->get("/ethereum/account/balance/{$address}", is_gaspump: true);
+                        if ($response->successful()) {
+                            return (float) ($response->json()['balance'] ?? 0);
+                        }
+                        break;
+
+                    case 'tron':
+                        $response = $this->apiClient->get("/tron/account/{$address}", is_gaspump: true);
+                        if ($response->successful()) {
+                            return (float) ($response->json()['balance'] ?? 0) / 1000000;
+                        }
+                        break;
+
+                    default:
+                        $response = $this->apiClient->get("/{$chain}/address/balance/{$address}", is_gaspump: true);
+                        if ($response->successful()) {
+                            return (float) ($response->json()['balance'] ?? 0);
+                        }
+                        break;
+                }
+            }
+
+            Log::warning("Failed to fetch balance for {$currency->symbol} at {$address}", [
+                'response' => $response->json() ?? 'No response',
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error fetching balance for {$currency->symbol}: ".$e->getMessage());
+        }
+
         return 0.0;
     }
 
@@ -102,7 +162,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
                 return $confirmations >= 2;
             }
         } catch (\Exception $e) {
-            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: " . $e->getMessage());
+            Log::error("Failed to check transaction confirmation for hash {$txHash} on currency {$currency->id}: ".$e->getMessage());
 
             return false;
         }
@@ -197,8 +257,9 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
         return $this->settingService->get('usd_ngn_rate', 1500.0);
     }
 
-    function activateAddress(WalletAccountInterface $wallet, Currency $currency, HdWallet $hdWallet, SystemWallet $gasWallet)  {
-        if (!$currency->is_gaspump) {
+    public function activateAddress(WalletAccountInterface $wallet, Currency $currency, HdWallet $hdWallet, SystemWallet $gasWallet)
+    {
+        if (! $currency->is_gaspump) {
             throw new Exception("Gaspump transfer not supported for non-gaspump currency {$currency->symbol}", 500);
         }
 
@@ -208,14 +269,14 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
         }
 
         if ($gasWallet->balance < $currency->fee) {
-            throw new Exception("Address activation not available", 500);
+            throw new Exception('Address activation not available', 500);
         }
 
         $payload = [
             'chain' => $chain,
             'owner' => $gasWallet->address,
-            'from' => (int)$wallet->index,
-            'to' => (int)$wallet->index,
+            'from' => (int) $wallet->index,
+            'to' => (int) $wallet->index,
             'signatureId' => $hdWallet->private_key,
         ];
 
@@ -225,7 +286,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
         //     $payload['fromPrivateKey'] = "0ca1c3ba8b7596f5b64dd42be89cc476c3b91a25917e4c046a38e5db607000c1";
         // }
 
-        if(!in_array($currency->id, [6,7,8])) {
+        if (! in_array($currency->id, [6, 7, 8])) {
             $payload['feeLimit'] = $currency->fee;
         }
 
@@ -241,13 +302,12 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
             throw new Exception('Failed to activate address', 500);
         }
 
-        return;
     }
 
     public function multipleTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts,
-     SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string
+        SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string
     {
-        if (!$currency->is_gaspump) {
+        if (! $currency->is_gaspump) {
             throw new \Exception("Gaspump transfer not supported for non-gaspump currency {$currency->symbol}", 500);
         }
 
@@ -263,7 +323,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
         foreach ($recipient_addresses as $address) {
             $tokenAddress[] = $currency->token_address;
             $tokenId[] = $currency->token_id;
-            $contractType[] = (int)$currency->contract_type;
+            $contractType[] = (int) $currency->contract_type;
         }
 
         $payload = [
@@ -275,8 +335,8 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
             'signatureId' => $hdWallet->private_key,
             'from' => $gasWallet->address,
             'feeLimit' => $currency->fee,
-            "tokenAddress" => $tokenAddress,
-            "tokenId" => $tokenId
+            'tokenAddress' => $tokenAddress,
+            'tokenId' => $tokenId,
         ];
 
         $response = $this->apiClient->post('/blockchain/sc/custodial/transfer/batch', $payload, 'v3', is_gaspump: true);
@@ -292,5 +352,4 @@ class TatumCryptoGateway implements CryptoGatewayInterface, MarketDataGatewayInt
 
         return $response->json()['signatureId'];
     }
-
 }

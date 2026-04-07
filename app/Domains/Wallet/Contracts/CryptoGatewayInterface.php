@@ -8,7 +8,7 @@ use App\Domains\Wallet\Models\SystemWallet;
 
 interface CryptoGatewayInterface
 {
-    public function getBalance(string $identifier): float;
+    public function getBalance(string $address, Currency $currency): float;
 
     public function generateAddress(Currency $currency, HdWallet $hdWallet, ?string $chain = null, ?SystemWallet $gasWallet = null): string;
 

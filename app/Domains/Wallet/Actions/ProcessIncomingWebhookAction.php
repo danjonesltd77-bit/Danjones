@@ -2,16 +2,14 @@
 
 namespace App\Domains\Wallet\Actions;
 
-use App\Domains\Wallet\Models\Wallet;
-use App\Domains\Wallet\Models\Transaction;
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\Currency;
-use App\Domains\Wallet\Models\SystemWallet;
+use App\Domains\Wallet\Models\Transaction;
+use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
-use App\Enum\SystemWalletType;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProcessIncomingWebhookAction
 {
@@ -32,21 +30,23 @@ class ProcessIncomingWebhookAction
         $address = $payload['address'] ?? null;
 
         $currencyId = Currency::where('token_currency', $payload['currency'])->first()->id;
-        if (!$txHash || !$address) {
+        if (! $txHash || ! $address) {
             Log::warning('Subscription missing required fields', ['payload' => $payload]);
+
             return ['success' => false, 'message' => 'Invalid subscription payload.'];
         }
 
         $wallet = Wallet::with(['user', 'currency'])->where('address', $address)->where('currency_id', $currencyId)->first();
-        if (!$wallet) {
+        if (! $wallet) {
             Log::warning('Subscription wallet not found', ['address' => $address, 'txHash' => $txHash]);
+
             return ['success' => false, 'message' => 'Wallet not found.'];
         }
 
         $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
 
         // General validity check for all currencies
-        if (!$details || !($details['blockNumber'] ?? $details['status'] ?? false)) {
+        if (! $details || ! ($details['blockNumber'] ?? $details['status'] ?? false)) {
             return ['success' => false, 'message' => 'Transaction not found or not yet confirmed.'];
         }
 
@@ -69,12 +69,14 @@ class ProcessIncomingWebhookAction
     {
         if ($verifiedAmount <= 0) {
             Log::warning('Zero amount verified for deposit', ['txHash' => $txHash, 'wallet' => $wallet->id]);
+
             return ['success' => false, 'message' => 'No valid incoming amount found.'];
         }
 
         $reportedAmount = (float) ($payload['amount'] ?? 0);
         if ($reportedAmount > 0 && abs($reportedAmount - $verifiedAmount) > 0.00000001) {
             Log::warning('Reported amount mismatch', ['reported' => $reportedAmount, 'verified' => $verifiedAmount]);
+
             return ['success' => false, 'message' => 'Reported amount does not match on-chain amount.'];
         }
 
@@ -93,6 +95,7 @@ class ProcessIncomingWebhookAction
 
             if ($existingDeposit) {
                 $alreadyProcessed = true;
+
                 return;
             }
 
@@ -110,6 +113,9 @@ class ProcessIncomingWebhookAction
                 $payload,
                 $status
             );
+
+            // Fetch on-chain balance immediately after deposit
+            \App\Domains\Wallet\Jobs\UpdateAddressBalanceJob::dispatch($lockedWallet);
         });
 
         if ($alreadyProcessed) {
@@ -120,7 +126,7 @@ class ProcessIncomingWebhookAction
             'success' => true,
             'message' => 'Deposit processed successfully.',
             'amount' => $verifiedAmount,
-            'txHash' => $txHash
+            'txHash' => $txHash,
         ];
     }
 
@@ -130,7 +136,7 @@ class ProcessIncomingWebhookAction
     private function extractBitcoinAmount(array $details, string $address): float
     {
         $outputs = $details['outputs'] ?? [];
-        if (!is_array($outputs) || empty($outputs)) {
+        if (! is_array($outputs) || empty($outputs)) {
             return 0;
         }
 
@@ -151,7 +157,7 @@ class ProcessIncomingWebhookAction
     private function extractTronAmount(array $details, string $address): float
     {
         $contracts = $details['rawData']['contract'] ?? [];
-        if (!is_array($contracts)) {
+        if (! is_array($contracts)) {
             return 0;
         }
 
@@ -182,7 +188,7 @@ class ProcessIncomingWebhookAction
         // If we have raw 'value' in Wei (standard for Ethereum JSON-RPC responses)
         if (isset($details['value'])) {
             $value = $details['value'];
-            
+
             // Convert Wei to ETH (18 decimals)
             // Using bcdiv if available for precision, or standard float division
             if (is_numeric($value)) {

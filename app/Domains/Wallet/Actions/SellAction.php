@@ -5,6 +5,7 @@ namespace App\Domains\Wallet\Actions;
 use App\Domains\Core\Services\SettingService;
 use App\Domains\Wallet\Contracts\GaspumpServiceInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
+use App\Domains\Wallet\Jobs\UpdateAddressBalanceJob;
 use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
@@ -99,7 +100,7 @@ class SellAction
                 throw new Exception("Fee wallet configuration missing for {$cryptoWallet->currency->symbol}. Please contact support.", 500);
             }
 
-            // We already checked and threw an exception if gasWallet was missing above, 
+            // We already checked and threw an exception if gasWallet was missing above,
             // but we need the variable within this scope for gaspump transfers.
             $gasWallet = null;
             if ($cryptoWallet->currency->is_gaspump) {
@@ -109,12 +110,11 @@ class SellAction
                 }
             }
 
-
             if ($lockedCryptoWallet->balance < $amount) {
                 throw new Exception('Insufficient balance during transaction.', 400);
             }
 
-            $reference = 'SELL-' . strtoupper(bin2hex(random_bytes(8)));
+            $reference = 'SELL-'.strtoupper(bin2hex(random_bytes(8)));
 
             $metadata = [
                 'crypto_usd_rate' => $cryptoUsdRate,
@@ -172,6 +172,9 @@ class SellAction
                 'completed',
                 'sell'
             );
+
+            // Fetch on-chain balance 10 minutes after withdrawal
+            UpdateAddressBalanceJob::dispatch($lockedCryptoWallet)->delay(now()->addMinutes(10));
         });
 
         return [
