@@ -16,7 +16,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -37,6 +37,7 @@ class User extends Authenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
+        'otp_expires_at',
     ];
 
     /**
@@ -50,7 +51,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
-
+            'otp_expires_at' => 'datetime',
         ];
     }
 
@@ -62,7 +63,7 @@ class User extends Authenticatable
         return Str::of($this->name)
             ->explode(' ')
             ->take(2)
-            ->map(fn($word) => Str::substr($word, 0, 1))
+            ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
 
@@ -128,8 +129,8 @@ class User extends Authenticatable
     public function wallet(int|string $currency): ?Wallet
     {
         return $this->wallets()
-            ->when(is_int($currency), fn($q) => $q->where('currency_id', $currency))
-            ->when(is_string($currency), fn($q) => $q->whereHas('currency', fn($c) => $c->where('symbol', $currency)))
+            ->when(is_int($currency), fn ($q) => $q->where('currency_id', $currency))
+            ->when(is_string($currency), fn ($q) => $q->whereHas('currency', fn ($c) => $c->where('symbol', $currency)))
             ->first();
     }
 }

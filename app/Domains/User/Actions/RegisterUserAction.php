@@ -3,12 +3,13 @@
 namespace App\Domains\User\Actions;
 
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class RegisterUserAction
 {
+    public function __construct(protected GenerateOtpAction $generateOtpAction) {}
+
     public function execute(array $data): User
     {
         $ref_code = Str::random(4);
@@ -20,6 +21,8 @@ class RegisterUserAction
             'ref_code' => $ref_code,
             'phone' => $data['phone'],
         ]);
+
+        $this->generateOtpAction->execute($user);
 
         return $user;
     }

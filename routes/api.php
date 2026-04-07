@@ -6,9 +6,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\P2PController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\WalletController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
 
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
@@ -19,6 +17,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/transaction-pin', [AuthController::class, 'setTransactionPin']);
     Route::post('/update-transaction-pin', [AuthController::class, 'updateTransactionPin']);
+
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 
     Route::prefix('wallets')->group(function () {
         Route::get('/', [WalletController::class, 'wallets']);
@@ -55,6 +56,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/verify-nin', 'verifyNin');
     });
 });
-
 
 require __DIR__.'/webhook.php';

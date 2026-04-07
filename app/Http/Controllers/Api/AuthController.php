@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\User\Actions\GenerateOtpAction;
 use App\Domains\User\Actions\RegisterUserAction;
 use App\Domains\User\Actions\SetTransactionPinAction;
 use App\Domains\User\Actions\UpdateTransactionPinAction;
+use App\Domains\User\Actions\VerifyOtpAction;
 use App\Domains\Wallet\Actions\CreateDefaultWalletsAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\RegisterRequest;
@@ -39,37 +41,36 @@ class AuthController extends Controller
 
             $statusCode = $e->getCode();
             // Validate that the code is a valid HTTP status code, fallback to 500 if not.
-            if (!is_numeric($statusCode) || $statusCode < 400 || $statusCode > 599) {
+            if (! is_numeric($statusCode) || $statusCode < 400 || $statusCode > 599) {
                 $statusCode = 500;
             }
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], $statusCode);
         }
 
         return response()->json([
             'success' => true,
             'user' => $user,
-            'token' => $token->plainTextToken
+            'token' => $token->plainTextToken,
         ]);
     }
-
 
     public function login(Request $request)
     {
         $request->validate([
             'email' => 'required',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         $user = Auth::attempt(['email' => $request->email, 'password' => $request->password]);
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Incorrect credentials'
+                'message' => 'Incorrect credentials',
             ], 401);
         }
 
@@ -77,7 +78,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'user'=> new UserResource($request->user()),
+            'user' => new UserResource($request->user()),
             'token' => $token->plainTextToken,
         ]);
     }
@@ -92,7 +93,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'user'=> new UserResource($request->user()),
+            'user' => new UserResource($request->user()),
             'message' => 'Transaction PIN set successfully.',
         ]);
     }
@@ -108,6 +109,31 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Transaction PIN updated successfully.',
+        ]);
+    }
+
+    public function verifyOtp(Request $request, VerifyOtpAction $action)
+    {
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $action->execute($request->user(), $request->otp);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email verified successfully.',
+            'user' => new UserResource($request->user()),
+        ]);
+    }
+
+    public function resendOtp(Request $request, GenerateOtpAction $action)
+    {
+        $action->execute($request->user());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification code sent to your email.',
         ]);
     }
 }
