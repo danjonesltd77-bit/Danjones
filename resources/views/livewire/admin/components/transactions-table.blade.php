@@ -117,6 +117,7 @@
                     <div class="font-medium {{ in_array(strtolower($tx->type?->value ?? ''), ['credit', 'deposit']) ? 'text-success' : 'text-danger' }}">
                         {{ in_array(strtolower($tx->type?->value ?? ''), ['credit', 'deposit']) ? '+' : '-' }}{{ crypto_format($tx->amount, $tx->currency?->decimal ?? 8) }} {{ $tx->currency ? $tx->currency->symbol : '' }}
                     </div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">${{ crypto_format($tx->usd, 2) }}</div>
                 </td>
                 <td class="px-5 py-4 whitespace-nowrap font-mono text-sm text-slate-500">
                     {{ crypto_format($tx->previous_balance, $tx->currency?->decimal ?? 8) }}
