@@ -49,34 +49,43 @@ class CompleteTradeAction
         }
 
         return DB::transaction(function () use ($trade, $escrowWallet) {
-            $trade->status = TradeStatus::COMPLETED;
-            $trade->save();
+            // Re-fetch and lock the trade to ensure it hasn't already been completed
+            $lockedTrade = P2PTrade::where('id', $trade->id)->lockForUpdate()->firstOrFail();
+            
+            if ($lockedTrade->status === TradeStatus::COMPLETED) {
+                return $lockedTrade;
+            }
 
-            $buyer = $trade->buyer;
-            $buyerWallet = $buyer->wallet($trade->currency_id);
+            $lockedTrade->status = TradeStatus::COMPLETED;
+            $lockedTrade->save();
+
+            $buyer = $lockedTrade->buyer;
+            $buyerWallet = $buyer->wallet($lockedTrade->currency_id);
 
             // Create wallet for buyer if they don't have one
             if (! $buyerWallet) {
-                $buyerWallet = $this->createWalletAction->execute($buyer, $trade->currency_id);
+                $buyerWallet = $this->createWalletAction->execute($buyer, $lockedTrade->currency_id);
             }
+            
+            $lockedBuyerWallet = \App\Domains\Wallet\Models\Wallet::where('id', $buyerWallet->id)->lockForUpdate()->firstOrFail();
 
             $feePercentage = $this->settingService->get('p2p_fee_percentage', 0);
-            $feeAmount = (float) $trade->crypto_amount * ($feePercentage / 100);
-            $netAmount = (float) $trade->crypto_amount - $feeAmount;
+            $feeAmount = (float) $lockedTrade->crypto_amount * ($feePercentage / 100);
+            $netAmount = (float) $lockedTrade->crypto_amount - $feeAmount;
 
-            $reference = 'trade_release_'.$trade->id;
+            $reference = 'trade_release_'.$lockedTrade->id;
 
-            $feeWallet = SystemWallet::where('currency_id', $trade->currency_id)
+            $feeWallet = SystemWallet::where('currency_id', $lockedTrade->currency_id)
                 ->where('type', SystemWalletType::FEE)
                 ->first();
 
             // If it's a gaspump currency, we need to move the crypto on-chain
-            if ($trade->currency->is_gaspump) {
-                $gasWallet = SystemWallet::where('currency_id', $trade->currency_id)
+            if ($lockedTrade->currency->is_gaspump) {
+                $gasWallet = SystemWallet::where('currency_id', $lockedTrade->currency_id)
                     ->where('type', SystemWalletType::GAS)
                     ->firstOrFail();
 
-                $recipients = [$buyerWallet->address];
+                $recipients = [$lockedBuyerWallet->address];
                 $amounts = [(string) $netAmount];
 
                 if ($feeAmount > 0 && $feeWallet && $feeWallet->address) {
@@ -86,12 +95,12 @@ class CompleteTradeAction
 
                 // For P2P release, we transfer from seller's custodial address to recipients
                 $this->gaspumpService->gaspumpBatchTransfer(
-                    $trade->seller->wallet($trade->currency_id),
+                    $lockedTrade->seller->wallet($lockedTrade->currency_id),
                     $recipients,
                     $amounts,
                     $gasWallet,
-                    $trade->currency,
-                    $trade->currency->hdWallet
+                    $lockedTrade->currency,
+                    $lockedTrade->currency->hdWallet
                 );
 
                 // For gaspump, we only debit the escrow wallet for the net amount on the ledger.
@@ -120,7 +129,7 @@ class CompleteTradeAction
                 // Record the net amount release: Escrow -> Buyer
                 $this->ledgerService->recordDeposit(
                     systemWallet: $escrowWallet,
-                    userWallet: $buyerWallet,
+                    userWallet: $lockedBuyerWallet,
                     amount: $netAmount,
                     usdAmount: 0,
                     reference: $reference,
@@ -140,7 +149,7 @@ class CompleteTradeAction
                 }
             }
 
-            return $trade;
+            return $lockedTrade;
         });
     }
 }

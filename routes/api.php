@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/sell', [WalletController::class, 'sell']);
         Route::get('/send-fee', [WalletController::class, 'sendFee']);
         Route::post('/send', [WalletController::class, 'send']);
+        Route::post('/deposit/flutterwave/verify', [WalletController::class, 'verifyFlutterwaveDeposit']);
     });
     Route::prefix('bank-accounts')->controller(BankAccountController::class)->group(function () {
         Route::get('/', 'index');

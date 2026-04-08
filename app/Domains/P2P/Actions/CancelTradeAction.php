@@ -41,29 +41,38 @@ class CancelTradeAction
         }
 
         return DB::transaction(function () use ($trade, $escrowWallet) {
-            $trade->status = TradeStatus::CANCELLED;
-            $trade->save();
+            // Re-fetch and lock the trade to ensure it hasn't already been processed
+            $lockedTrade = P2PTrade::where('id', $trade->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedTrade->status === TradeStatus::CANCELLED) {
+                return $lockedTrade;
+            }
+
+            $lockedTrade->status = TradeStatus::CANCELLED;
+            $lockedTrade->save();
 
             // Return available amount to advertisement
-            $ad = $trade->advertisement;
-            $ad->available_amount += $trade->crypto_amount;
-            $ad->save();
+            $ad = $lockedTrade->advertisement;
+            $lockedAd = \App\Domains\P2P\Models\P2PAdvertisement::where('id', $ad->id)->lockForUpdate()->firstOrFail();
+            $lockedAd->available_amount += $lockedTrade->crypto_amount;
+            $lockedAd->save();
 
-            $seller = $trade->seller;
-            $sellerWallet = $seller->wallet($trade->currency_id);
+            $seller = $lockedTrade->seller;
+            $sellerWallet = $seller->wallet($lockedTrade->currency_id);
+            $lockedSellerWallet = \App\Domains\Wallet\Models\Wallet::where('id', $sellerWallet->id)->lockForUpdate()->firstOrFail();
 
             // Refund from escrow to seller
-            $reference = 'trade_cancel_'.$trade->id;
+            $reference = 'trade_cancel_'.$lockedTrade->id;
             $this->ledgerService->recordDeposit(
                 systemWallet: $escrowWallet,
-                userWallet: $sellerWallet,
-                amount: $trade->crypto_amount,
+                userWallet: $lockedSellerWallet,
+                amount: $lockedTrade->crypto_amount,
                 usdAmount: 0,
                 reference: $reference,
                 description: 'P2P Trade Cancelled Refund'
             );
 
-            return $trade;
+            return $lockedTrade;
         });
     }
 }

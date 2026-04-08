@@ -6,6 +6,7 @@ use App\Domains\Core\Services\SettingService;
 use App\Domains\Wallet\Actions\CreateWalletAction;
 use App\Domains\Wallet\Actions\SellAction;
 use App\Domains\Wallet\Actions\SendAction;
+use App\Domains\Wallet\Actions\VerifyFlutterwaveDepositAction;
 use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\Currency;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\CreateWalletRequest;
 use App\Http\Requests\Api\SellRequest;
 use App\Http\Requests\Api\SendRequest;
+use App\Http\Requests\Api\VerifyDepositRequest;
 use App\Http\Resources\CurrencyResource;
 use App\Http\Resources\WalletResource;
 use App\Http\Responses\ApiResponse;
@@ -238,6 +240,32 @@ class WalletController extends Controller
             return ApiResponse::success($result, 200);
         } catch (Exception $e) {
             Log::error('Send failed', ['error' => $e->getMessage()]);
+            $code = $e->getCode();
+            $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
+
+            return ApiResponse::error($e->getMessage(), $code);
+        }
+    }
+
+    /**
+     * Verify and confirm a Flutterwave deposit.
+     */
+    public function verifyFlutterwaveDeposit(VerifyDepositRequest $request, VerifyFlutterwaveDepositAction $action): JsonResponse
+    {
+        try {
+            $result = $action->execute(
+                $request->user(),
+                $request->string('reference')
+            );
+
+            return ApiResponse::success($result, 200);
+        } catch (Exception $e) {
+            Log::error('Flutterwave deposit verification failed', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+                'reference' => $request->string('reference'),
+            ]);
+
             $code = $e->getCode();
             $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
 

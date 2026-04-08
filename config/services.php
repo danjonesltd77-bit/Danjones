@@ -47,4 +47,8 @@ return [
         'secret' => env('QOREID_SECRET'),
     ],
 
+    'flutterwave' => [
+        'secret_key' => env('FLUTTERWAVE_SECRET_KEY'),
+    ],
+
 ];

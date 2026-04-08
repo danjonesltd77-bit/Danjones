@@ -62,10 +62,16 @@ class SendAction
         }
 
         return DB::transaction(function () use ($user, $currency, $wallet, $amount, $recipientAddress, $totalFee, $serviceFee, $networkFee, $feeWallet, $rate) {
+            // Re-fetch and lock for update to ensure balance hasn't changed
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedWallet->balance < ($amount + $totalFee)) {
+                throw new Exception('Insufficient balance during transaction processing.', 400);
+            }
 
             // 2. Perform On-chain Transaction
             if ($currency->is_gaspump) {
-                $res = $this->handleGaspumpSend($user, $currency, $wallet, $amount, $recipientAddress, $serviceFee, $feeWallet);
+                $res = $this->handleGaspumpSend($user, $currency, $lockedWallet, $amount, $recipientAddress, $serviceFee, $feeWallet);
             } else {
                 $res = $this->handleUtxoSend($currency, $amount, $recipientAddress, $networkFee);
             }
@@ -73,7 +79,7 @@ class SendAction
             // 3. Record Ledger Entries
             // Debit user for the base amount and network/gas cost
             $this->ledgerService->recordWithdrawal(
-                $wallet,
+                $lockedWallet,
                 null,
                 ($amount + $networkFee),
                 ($amount + $networkFee) * $rate,
@@ -83,7 +89,7 @@ class SendAction
 
             // Record the Service Fee (debit user, credit system fee wallet)
             $this->ledgerService->recordFee(
-                $wallet,
+                $lockedWallet,
                 $feeWallet,
                 $serviceFee,
                 $serviceFee * $rate,
@@ -144,6 +150,7 @@ class SendAction
         if (! empty($res['spentAddresses'])) {
             Wallet::whereIn('address', $res['spentAddresses'])
                 ->where('currency_id', $currency->id)
+                ->lockForUpdate()
                 ->update(['address_balance' => 0]);
         }
 

@@ -71,37 +71,41 @@ class InitiateTradeAction
         }
 
         return DB::transaction(function () use ($ad, $seller, $buyer, $sellerWallet, $escrowWallet, $cryptoAmount, $fiatAmount) {
-            // Deduct available amount from ad immediately to prevent race conditions
-            $ad->available_amount -= $cryptoAmount;
-            if ($ad->available_amount < 0) {
-                throw new Exception('Ad sold out.', 400);
+            // Re-fetch and lock the advertisement to prevent race conditions on available_amount
+            $lockedAd = P2PAdvertisement::where('id', $ad->id)->lockForUpdate()->firstOrFail();
+            
+            // Re-fetch and lock the seller's wallet
+            $lockedSellerWallet = \App\Domains\Wallet\Models\Wallet::where('id', $sellerWallet->id)->lockForUpdate()->firstOrFail();
+
+            if ($cryptoAmount > $lockedAd->available_amount) {
+                throw new Exception('Insufficient crypto available in this advertisement during processing.', 400);
             }
-            $ad->save();
+
+            if ($lockedSellerWallet->balance < $cryptoAmount) {
+                throw new Exception('Seller does not have enough crypto balance during processing.', 400);
+            }
+
+            // Deduct available amount from ad immediately
+            $lockedAd->available_amount -= $cryptoAmount;
+            $lockedAd->save();
 
             // Create Trade
             $trade = P2PTrade::create([
-                'advertisement_id' => $ad->id,
+                'advertisement_id' => $lockedAd->id,
                 'seller_id' => $seller->id,
                 'buyer_id' => $buyer->id,
-                'currency_id' => $ad->currency_id,
+                'currency_id' => $lockedAd->currency_id,
                 'crypto_amount' => $cryptoAmount,
                 'fiat_amount' => $fiatAmount,
                 'status' => TradeStatus::PENDING,
             ]);
 
-            // Move funds to escrow
-            // recordDeposit expects: systemWallet, userWallet, amount, usdAmount, reference, description.
-            // Wait, recordDeposit credits the user and debits system.
-            // recordWithdrawal debits the user and credits system.
-            // We want to debit the seller and credit the escrow. So recordWithdrawal for the seller.
-            // Note: In LedgerService, recordWithdrawal takes (userWallet, systemWallet, ...).
-
             $reference = 'trade_'.$trade->id;
             $this->ledgerService->recordWithdrawal(
-                userWallet: $sellerWallet,
+                userWallet: $lockedSellerWallet,
                 systemWallet: $escrowWallet,
                 amount: $cryptoAmount,
-                usdAmount: 0, // Simplified for P2P, normally calculate USD equivalent
+                usdAmount: 0,
                 reference: $reference,
                 description: 'P2P Trade Escrow Lock'
             );
