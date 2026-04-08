@@ -130,7 +130,7 @@ class SendOnchainAction
         })->values()->toArray();
 
         try {
-            $res = $this->cryptoGateway->sendOnchain(
+            $res = $this->cryptoGateway->utxoSend(
                 $currency,
                 $formattedWallets,
                 $recipientAddress,

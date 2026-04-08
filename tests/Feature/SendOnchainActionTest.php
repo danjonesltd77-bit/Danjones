@@ -64,7 +64,7 @@ test('SendOnchainAction selects wallets and broadcasts correctly', function () {
     $mockSettings->shouldReceive('get')->with('onchain_fee_max_usd', 50.0)->andReturn(50.0);
 
     // Mock broadcast
-    $mockGateway->shouldReceive('sendOnchain')
+    $mockGateway->shouldReceive('utxoSend')
         ->once()
         ->with(
             Mockery::type(Currency::class),

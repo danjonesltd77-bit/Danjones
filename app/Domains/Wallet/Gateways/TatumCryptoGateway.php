@@ -431,7 +431,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         return 0;
     }
 
-    public function sendOnchain(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array
+    public function utxoSend(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array
     {
         $chain = Str::lower($currency->name);
         if ($chain === 'dogecoin') {

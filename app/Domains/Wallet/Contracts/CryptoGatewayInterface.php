@@ -18,5 +18,5 @@ interface CryptoGatewayInterface
 
     public function estimateOnchainFee(Currency $currency, float $amount): float;
 
-    public function sendOnchain(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array;
+    public function utxoSend(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array;
 }
