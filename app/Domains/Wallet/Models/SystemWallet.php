@@ -2,12 +2,19 @@
 
 namespace App\Domains\Wallet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Enum\SystemWalletType;
+use Illuminate\Database\Eloquent\Model;
 
 class SystemWallet extends Model implements WalletAccountInterface
 {
+    use \Illuminate\Database\Eloquent\Factories\HasFactory;
+
+    protected static function newFactory()
+    {
+        return \Database\Factories\Domains\Wallet\Models\SystemWalletFactory::new();
+    }
+
     protected $fillable = [
         'type',
         'currency_id',

@@ -28,8 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wallet/{currencyId}', [WalletController::class, 'wallet']);
         Route::post('/create', [WalletController::class, 'create']);
         Route::post('/sell', [WalletController::class, 'sell']);
+        Route::get('/send-fee', [WalletController::class, 'sendFee']);
     });
-
     Route::prefix('bank-accounts')->controller(BankAccountController::class)->group(function () {
         Route::get('/', 'index');
         Route::get('/list', 'bankList');

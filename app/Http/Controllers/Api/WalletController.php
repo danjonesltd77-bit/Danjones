@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domains\Core\Services\SettingService;
 use App\Domains\Wallet\Actions\CreateWalletAction;
 use App\Domains\Wallet\Actions\SellAction;
+use App\Domains\Wallet\Contracts\CryptoGatewayInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Http\Controllers\Controller;
@@ -88,17 +90,17 @@ class WalletController extends Controller
 
             return [
                 'currency_id' => $wallet->currency_id,
-                'symbol'      => $wallet->currency->symbol,
-                'name'        => $wallet->currency->name,
-                'balance'     => (float) $wallet->balance,
-                'rate_usd'    => (float) $rate,
+                'symbol' => $wallet->currency->symbol,
+                'name' => $wallet->currency->name,
+                'balance' => (float) $wallet->balance,
+                'rate_usd' => (float) $rate,
                 'balance_usd' => (float) $wallet->balance * $rate,
             ];
         });
 
         return ApiResponse::success([
             'usd_ngn_rate' => (float) $usdNgnRate,
-            'wallets'      => $rates,
+            'wallets' => $rates,
         ], 200);
     }
 
@@ -177,6 +179,42 @@ class WalletController extends Controller
             $code = (is_int($code) && $code >= 100 && $code < 600) ? $code : 500;
 
             return ApiResponse::error($e->getMessage(), $code);
+        }
+    }
+
+    /**
+     * Get the estimated on-chain fee for a transaction.
+     */
+    public function sendFee(Request $request, CryptoGatewayInterface $cryptoGateway, SettingService $settingService): JsonResponse
+    {
+        $request->validate([
+            'currency_id' => 'required|integer|exists:currencies,id',
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            $currencyId = $request->integer('currency_id');
+            $amount = round($request->float('amount'), 6);
+            $currency = Currency::findOrFail($currencyId);
+
+            // Use the "Smart" gateway estimation (handles internal wallet selection)
+            $fee = $cryptoGateway->estimateOnchainFee($currency, $amount);
+
+            $rate = $this->marketDataGateway->getExchangeRate($currencyId);
+            $feeUsd = $fee * $rate;
+            $maxFeeUsd = $settingService->get('onchain_fee_max_usd', 50.0);
+
+            return ApiResponse::success([
+                'fee' => $fee,
+                'fee_usd' => $feeUsd,
+                'rate_usd' => $rate,
+                'is_high_fee' => $feeUsd > $maxFeeUsd,
+                'max_fee_usd' => $maxFeeUsd,
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('On-chain fee estimation error', ['error' => $e->getMessage()]);
+
+            return ApiResponse::error($e->getMessage(), 400);
         }
     }
 }

@@ -16,6 +16,23 @@ class Currency extends Model
 
     protected $guarded = [];
 
+    protected $fillable = [
+        'parent_id',
+        'name',
+        'image',
+        'symbol',
+        'decimal',
+        'fee',
+        'is_crypto',
+        'is_active',
+        'is_gaspump',
+        'token_currency',
+        'token_id',
+        'token_address',
+        'contract_type',
+        'change_address',
+    ];
+
     public function parent()
     {
         return $this->belongsTo(Currency::class, 'parent_id');

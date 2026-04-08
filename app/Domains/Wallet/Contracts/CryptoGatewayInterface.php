@@ -15,4 +15,8 @@ interface CryptoGatewayInterface
     public function getTransactionDetails(string $txHash, Currency $currency): array;
 
     public function isTransactionConfirmed(string $txHash, Currency $currency): bool;
+
+    public function estimateOnchainFee(Currency $currency, float $amount): float;
+
+    public function sendOnchain(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array;
 }

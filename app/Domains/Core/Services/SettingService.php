@@ -4,6 +4,7 @@ namespace App\Domains\Core\Services;
 
 use App\Domains\Core\Models\Setting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class SettingService
 {
@@ -12,13 +13,15 @@ class SettingService
      */
     public function get(string $key, mixed $default = null): mixed
     {
-        $setting = Cache::rememberForever("setting.{$key}", function () use ($key) {
-            return Setting::where('key', $key)->first();
-        });
+        $type = $this->guessType($default);
 
-        if (! $setting) {
-            return $default;
-        }
+        $setting = Setting::firstOrCreate(
+            ['key' => $key],
+            [
+                'value' => $this->formatValue($default, $type),
+                'type' => $type,
+            ]
+        );
 
         return $this->castValue($setting->value, $setting->type);
     }

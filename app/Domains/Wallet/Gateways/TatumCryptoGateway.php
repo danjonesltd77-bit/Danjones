@@ -11,7 +11,9 @@ use App\Domains\Wallet\Contracts\WalletAccountInterface;
 use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\HdWallet;
 use App\Domains\Wallet\Models\SystemWallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\TatumApiClient;
+use App\Enum\SystemWalletType;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -351,5 +353,116 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         }
 
         return $response->json()['signatureId'];
+    }
+
+    public function estimateOnchainFee(Currency $currency, float $amount): float
+    {
+        $symbol = Str::upper($currency->symbol);
+
+        // 1. Determine input count for UTXO chains by looking up balances internally
+        $inputCount = 1;
+        if (! $currency->is_gaspump) {
+            $changeWallet = SystemWallet::where('currency_id', $currency->id)
+                ->where('type', SystemWalletType::CHANGE)
+                ->first();
+
+            $walletsToSelectFrom = collect();
+
+            if ($changeWallet) {
+                // We use the gateway's own getBalance to ensure consistency
+                $onchainBalance = $this->getBalance($changeWallet->address, $currency);
+                if ($onchainBalance > 0) {
+                    $walletsToSelectFrom->push((object) ['balance' => $onchainBalance]);
+                }
+            }
+
+            $dbWallets = Wallet::where('currency_id', $currency->id)
+                ->where('address_balance', '>', 0)
+                ->get();
+
+            foreach ($dbWallets as $wallet) {
+                $walletsToSelectFrom->push((object) ['balance' => (float) $wallet->address_balance]);
+            }
+
+            $sortedWallets = $walletsToSelectFrom->sortByDesc('balance');
+            $currentBalance = 0;
+            $foundInputs = 0;
+
+            foreach ($sortedWallets as $wallet) {
+                $foundInputs++;
+                $currentBalance += $wallet->balance;
+                if ($currentBalance >= $amount) {
+                    break;
+                }
+            }
+
+            $inputCount = max(1, $foundInputs);
+        }
+
+        switch ($symbol) {
+            case 'BTC':
+            case 'DOGE':
+                $response = $this->apiClient->get("/blockchain/fee/{$symbol}", 'v3');
+
+                if (! $response->successful()) {
+                    Log::error('Tatum fee estimation failed', [
+                        'currency' => $currency->symbol,
+                        'response' => $response->json(),
+                    ]);
+                    throw new \Exception($response->json()['message'] ?? 'Could not estimate transaction fee.', 500);
+                }
+
+                $feeRate = (float) ($response->json()['slow'] ?? 0);
+
+                if ($symbol === 'BTC' || $symbol === 'DOGE') {
+                    // size = (148 * inputs) + (34 * outputs) + 10
+                    $estimatedSize = ($inputCount * 148) + (2 * 34) + 10;
+                    $totalSatoshis = $feeRate * $estimatedSize;
+
+                    return $totalSatoshis / pow(10, (int) $currency->decimal);
+                }
+
+                break;
+
+            default:
+                return (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+        }
+
+        return 0;
+    }
+
+    public function sendOnchain(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array
+    {
+        $chain = Str::lower($currency->name);
+        if ($chain === 'dogecoin') {
+            $chain = 'doge';
+        }
+
+        $payload = [
+            'fromAddress' => $formattedWallets,
+            'to' => [
+                [
+                    'address' => $to,
+                    'value' => round($amount - $fee, 6),
+                ],
+            ],
+            'fee' => (string) $fee,
+        ];
+
+        if ($changeAddress) {
+            $payload['changeAddress'] = $changeAddress;
+        }
+
+        $response = $this->apiClient->post("/{$chain}/transaction", $payload);
+
+        if (! $response->successful()) {
+            Log::error('Tatum on-chain send failed', [
+                'chain' => $chain,
+                'response' => $response->json(),
+            ]);
+            throw new \Exception($response->json()['message'] ?? 'Failed to broadcast on-chain transaction.', 500);
+        }
+
+        return $response->json();
     }
 }
