@@ -419,7 +419,10 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                     $estimatedSize = ($inputCount * 148) + (2 * 34) + 10;
                     $totalSatoshis = $feeRate * $estimatedSize;
 
-                    return $totalSatoshis / pow(10, (int) $currency->decimal);
+                    $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
+                    $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+
+                    return $networkFee + $serviceFee;
                 }
 
                 break;
@@ -431,8 +434,65 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         return 0;
     }
 
-    public function utxoSend(Currency $currency, array $formattedWallets, string $to, float $amount, float $fee, ?string $changeAddress = null): array
+    public function utxoSend(Currency $currency, string $to, float $amount, float $fee): array
     {
+        $changeWallet = SystemWallet::where('currency_id', $currency->id)
+            ->where('type', SystemWalletType::CHANGE)
+            ->first();
+
+        if (!$changeWallet) {
+            throw new \Exception('Change wallet not found for currency ' . $currency->symbol, 500);
+        }
+
+        $walletsToSelectFrom = collect();
+        if ($changeWallet) {
+            $bal = $this->getBalance($changeWallet->address, $currency);
+            if ($bal > 0) {
+                $walletsToSelectFrom->push((object) [
+                    'address' => $changeWallet->address,
+                    'address_balance' => $bal,
+                    'index' => 0,
+                    'is_system' => true,
+                ]);
+            }
+        }
+
+        $dbWallets = Wallet::where('currency_id', $currency->id)
+            ->where('address_balance', '>', 0)
+            ->get();
+
+        foreach ($dbWallets as $w) {
+            $walletsToSelectFrom->push((object) [
+                'address' => $w->address,
+                'address_balance' => (float) $w->address_balance,
+                'index' => (int) $w->index,
+                'is_system' => false,
+                'model' => $w,
+            ]);
+        }
+
+        $sorted = $walletsToSelectFrom->sortByDesc('address_balance');
+        $selected = collect();
+        $runningBal = 0;
+        foreach ($sorted as $w) {
+            $selected->push($w);
+            $runningBal += $w->address_balance;
+            if ($runningBal >= ($amount + $fee)) {
+                break;
+            }
+        }
+
+        if ($runningBal < ($amount + $fee)) {
+            throw new Exception('Service not available');
+        }
+
+        $hd = $currency->hdWallet;
+        $formattedWallets = $selected->map(fn ($w) => [
+            'address' => $w->address,
+            'signatureId' => $hd->signature_id,
+            'index' => (int) $w->index,
+        ])->values()->toArray();
+
         $chain = Str::lower($currency->name);
         if ($chain === 'dogecoin') {
             $chain = 'doge';
@@ -443,14 +503,14 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             'to' => [
                 [
                     'address' => $to,
-                    'value' => round($amount - $fee, 6),
+                    'value' => round($amount, 6),
                 ],
             ],
             'fee' => (string) $fee,
         ];
 
-        if ($changeAddress) {
-            $payload['changeAddress'] = $changeAddress;
+        if ($changeWallet) {
+            $payload['changeAddress'] = $changeWallet->address;
         }
 
         $response = $this->apiClient->post("/{$chain}/transaction", $payload);
@@ -460,9 +520,12 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 'chain' => $chain,
                 'response' => $response->json(),
             ]);
-            throw new \Exception($response->json()['message'] ?? 'Failed to broadcast on-chain transaction.', 500);
+            throw new Exception($response->json()['message'] ?? 'Failed to broadcast on-chain transaction.', 500);
         }
 
-        return $response->json();
+        $data = $response->json();
+        $data['spentAddresses'] = $selected->where('is_system', false)->pluck('address')->toArray();
+
+        return $data;
     }
 }

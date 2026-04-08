@@ -61,6 +61,9 @@
                                             {{ crypto_format($wallet->balance, $wallet->currency->decimal ?? 8) }} 
                                             <span class="text-sm font-normal text-slate-400">{{ $wallet->currency->symbol }}</span>
                                         </div>
+                                        <div class="text-sm font-medium text-slate-500 mt-1">
+                                            ≈ ${{ crypto_format($wallet->balance * ($this->currencyRates[$wallet->currency_id] ?? 0), 2) }}
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="px-2 py-1 rounded bg-success/10 text-success text-[10px] font-bold uppercase">{{ $wallet->status->value }}</div>

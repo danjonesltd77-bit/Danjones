@@ -82,6 +82,24 @@ class UserView extends Component
         return Currency::all();
     }
 
+    #[Computed]
+    public function currencyRates(): array
+    {
+        $marketData = app(\App\Domains\Wallet\Contracts\MarketDataGatewayInterface::class);
+        $currencyIds = $this->user->wallets->pluck('currency_id')->unique();
+
+        return $currencyIds->mapWithKeys(function ($id) use ($marketData) {
+            $currency = Currency::find($id);
+
+            // Special handling for NGN if needed, else use gateway
+            if ($currency->symbol === 'NGN') {
+                return [$id => 1 / $marketData->getUsdNgnRate()];
+            }
+
+            return [$id => $marketData->getExchangeRate($id)];
+        })->toArray();
+    }
+
     public function render()
     {
         return view('livewire.admin.users.user-view')->layout('layouts.app');

@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/create', [WalletController::class, 'create']);
         Route::post('/sell', [WalletController::class, 'sell']);
         Route::get('/send-fee', [WalletController::class, 'sendFee']);
+        Route::post('/send', [WalletController::class, 'send']);
     });
     Route::prefix('bank-accounts')->controller(BankAccountController::class)->group(function () {
         Route::get('/', 'index');
