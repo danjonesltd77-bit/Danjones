@@ -14,7 +14,7 @@ interface GaspumpServiceInterface
      * @param  string[]  $recipient_addresses
      * @param  string[]  $amounts
      */
-    public function multipleTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts, SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string;
+    public function gaspumpBatchTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts, SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string;
 
     public function activateAddress(WalletAccountInterface $wallet, Currency $currency, HdWallet $hdWallet, SystemWallet $gasWallet);
 }

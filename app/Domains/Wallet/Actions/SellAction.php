@@ -125,7 +125,7 @@ class SellAction
             // If it's a gaspump currency, we need to move the crypto on-chain
             if ($cryptoWallet->currency->is_gaspump) {
                 // For gaspump, we transfer the total amount (net + fee) to the system SELL wallet
-                $signatureId = $this->gaspumpService->multipleTransfer(
+                $signatureId = $this->gaspumpService->gaspumpBatchTransfer(
                     $lockedCryptoWallet,
                     [$lockedSystemWallet->address, $lockedSystemFeeWallet->address],
                     [(string) $netCryptoAmount, (string) $feeInCrypto],

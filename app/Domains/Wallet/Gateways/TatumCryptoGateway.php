@@ -306,7 +306,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
     }
 
-    public function multipleTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts,
+    public function gaspumpBatchTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts,
         SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string
     {
         if (! $currency->is_gaspump) {

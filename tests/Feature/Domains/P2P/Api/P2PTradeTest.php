@@ -346,7 +346,7 @@ it('triggers on-chain transfer when completing a gas pump p2p trade', function (
     ]);
 
     $gaspumpMock = \Mockery::mock(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class);
-    $gaspumpMock->shouldReceive('multipleTransfer')
+    $gaspumpMock->shouldReceive('gaspumpBatchTransfer')
         ->once()
         ->with(
             \Mockery::any(),

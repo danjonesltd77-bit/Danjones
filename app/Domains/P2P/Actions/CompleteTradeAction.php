@@ -85,7 +85,7 @@ class CompleteTradeAction
                 }
 
                 // For P2P release, we transfer from seller's custodial address to recipients
-                $this->gaspumpService->multipleTransfer(
+                $this->gaspumpService->gaspumpBatchTransfer(
                     $trade->seller->wallet($trade->currency_id),
                     $recipients,
                     $amounts,

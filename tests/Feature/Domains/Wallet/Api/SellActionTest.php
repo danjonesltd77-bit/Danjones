@@ -158,7 +158,7 @@ it('triggers on-chain transfer for gaspump currencies', function () {
 
     // Mock GaspumpServiceInterface
     $mockGaspump = mock(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class);
-    $mockGaspump->shouldReceive('multipleTransfer')->once()->andReturn($mockSignatureId);
+    $mockGaspump->shouldReceive('gaspumpBatchTransfer')->once()->andReturn($mockSignatureId);
     app()->instance(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class, $mockGaspump);
 
     $response = actingAs($this->user)->postJson('/api/wallets/sell', [
