@@ -18,19 +18,38 @@ class FlutterwaveService
 
     /**
      * Verify a transaction using Flutterwave's transaction ID.
-     *
-     * @param string $transactionId
-     * @return array
-     * @throws Exception
      */
-    public function verifyTransaction(string $transactionId): array
+    public function verifyTransactionById(string $transactionId): array
     {
         $response = Http::withToken($this->secretKey)
             ->get("{$this->baseUrl}/transactions/{$transactionId}/verify");
 
+        return $this->handleResponse($response, $transactionId);
+    }
+
+    /**
+     * Verify a transaction using the merchant's transaction reference (tx_ref).
+     */
+    public function verifyTransactionByReference(string $reference): array
+    {
+        $response = Http::withToken($this->secretKey)
+            ->get("{$this->baseUrl}/transactions/verify_by_reference", [
+                'tx_ref' => $reference,
+            ]);
+
+        return $this->handleResponse($response, $reference);
+    }
+
+    /**
+     * Handle the Flutterwave API response.
+     *
+     * @throws Exception
+     */
+    protected function handleResponse($response, string $identifier): array
+    {
         if (!$response->successful()) {
             Log::error('Flutterwave verification request failed', [
-                'transaction_id' => $transactionId,
+                'identifier' => $identifier,
                 'status' => $response->status(),
                 'body' => $response->json(),
             ]);
@@ -39,7 +58,7 @@ class FlutterwaveService
 
         $data = $response->json();
 
-        if ($data['status'] !== 'success') {
+        if (($data['status'] ?? '') !== 'success') {
             throw new Exception($data['message'] ?? 'Transaction verification failed.');
         }
 

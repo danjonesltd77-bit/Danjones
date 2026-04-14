@@ -44,7 +44,7 @@ class VerifyFlutterwaveDepositAction
         }
 
         // 2. Verify with Flutterwave
-        $flutterwaveData = $this->flutterwaveService->verifyTransaction($reference);
+        $flutterwaveData = $this->flutterwaveService->verifyTransactionByReference($reference);
 
         // 3. Validate Transaction Data
         if ($flutterwaveData['status'] !== 'successful') {
