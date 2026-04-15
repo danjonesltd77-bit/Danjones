@@ -35,6 +35,14 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
             return $user->hasRole('super-admin') ? true : null;
         });
+
+        // Register SendGrid API Mail Transport
+        \Illuminate\Support\Facades\Mail::extend('sendgrid', function (array $config) {
+            return new \Symfony\Component\Mailer\Bridge\Sendgrid\Transport\SendgridApiTransport(
+                env('SENDGRID_API_KEY'),
+                \Symfony\Component\HttpClient\HttpClient::create()
+            );
+        });
     }
 
     /**
@@ -49,13 +57,13 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Password::defaults(
-            fn(): ?Password => app()->isProduction()
+            fn (): ?Password => app()->isProduction()
                 ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
+                    ->mixedCase()
+                    ->letters()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised()
                 : null,
         );
     }
