@@ -20,10 +20,8 @@
     <div class="container grid grid-cols-12 px-5 py-10 sm:px-10 sm:py-14 md:px-36 lg:h-screen lg:max-w-[1550px] lg:py-0 lg:pl-14 lg:pr-12 xl:px-24 2xl:max-w-[1750px]">
         <div class="relative z-50 h-full col-span-12 p-7 sm:p-14 bg-white rounded-2xl lg:bg-transparent lg:pr-10 lg:col-span-5 xl:pr-24 2xl:col-span-4 lg:p-0 before:content-[''] before:absolute before:inset-0 before:-mb-3.5 before:bg-white/40 before:rounded-2xl before:mx-5">
             <div class="relative z-10 flex flex-col justify-center w-full h-full py-2 lg:py-32">
-                <div class="flex h-[55px] w-[55px] items-center justify-center rounded-[0.8rem] border border-primary/30">
-                    <div class="relative flex h-[50px] w-[50px] items-center justify-center rounded-[0.6rem] bg-white overflow-hidden text-white" style="background-image: linear-gradient(to bottom, #03045e, #0c4a6e);">
-                        <x-app-logo-icon class="size-8 fill-current" />
-                    </div>
+                <div class="flex items-center">
+                    <x-app-logo-icon class="size-12" />
                 </div>
                 <div class="mt-10">
                     {{ $slot }}
