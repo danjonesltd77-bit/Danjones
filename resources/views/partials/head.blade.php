@@ -6,6 +6,7 @@
 <meta name="keywords" content="crypto, dashboard, admin, trading, wallet management, digital assets, echo, premium admin">
 <meta name="author" content="DJWC">
 <title>{{ env('APP_NAME') }} - Admin Dashboard</title>
+<link rel="icon" type="image/png" href="{{ asset('assets/icon.png') }}">
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 <!-- BEGIN: CSS Assets-->
