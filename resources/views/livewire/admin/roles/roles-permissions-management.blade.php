@@ -128,27 +128,10 @@
 
                 @if($activeTab === 'permissions')
                     <div class="grid grid-cols-12 gap-6" wire:key="tab-content-permissions">
-                        <!-- Create Permission -->
-                        <div class="col-span-12 lg:col-span-4">
-                            <div class="box box--stacked p-5 h-fit">
-                                <div class="text-base font-medium mb-5">Create New Permission</div>
-                                <form wire:submit.prevent="createPermission">
-                                    <div>
-                                        <label class="form-label text-slate-500 text-xs uppercase mb-2 block">Permission Name</label>
-                                        <input wire:model="permissionName" type="text" 
-                                               class="w-full border-slate-200 rounded-md focus:ring-primary focus:border-primary px-3 py-2 text-sm shadow-sm" 
-                                               placeholder="e.g. manage orders">
-                                        @error('permissionName') <span class="text-danger text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                    <button type="submit" class="bg-primary text-white px-4 py-2 rounded-md shadow-sm mt-5 w-full font-medium">
-                                        Create Permission
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+
 
                         <!-- Permissions List -->
-                        <div class="col-span-12 lg:col-span-8">
+                        <div class="col-span-12">
                             <div class="box box--stacked p-5">
                                 <div class="text-base font-medium mb-5">Existing Permissions</div>
                                 <div class="overflow-x-auto">
@@ -156,19 +139,14 @@
                                         <thead>
                                             <tr class="border-b border-dashed border-slate-300/80">
                                                 <th class="px-5 py-3 font-medium text-slate-500 whitespace-nowrap">Name</th>
-                                                <th class="px-5 py-3 font-medium text-slate-500 whitespace-nowrap text-center">Actions</th>
+
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($this->permissions as $permission)
                                                 <tr class="border-b border-dashed border-slate-300/80 last:border-0 hover:bg-slate-50/50">
                                                     <td class="px-5 py-4 font-medium">{{ $permission->name }}</td>
-                                                    <td class="px-5 py-4 text-center">
-                                                        <button wire:click="deletePermission({{ $permission->id }})" class="text-danger hover:text-danger/70"
-                                                                onclick="confirm('Are you sure?') || event.stopImmediatePropagation()">
-                                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
-                                                        </button>
-                                                    </td>
+
                                                 </tr>
                                             @endforeach
                                         </tbody>

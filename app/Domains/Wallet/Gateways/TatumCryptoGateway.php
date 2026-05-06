@@ -178,7 +178,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         if ($currency->parent_id == $currency->id || $currency->parent_id == null) {
             $type = 'INCOMING_NATIVE_TX';
         } else {
-            $type = 'INCOMING_INTERNAL_TX';
+            $type = 'INCOMING_FUNGIBLE_TX';
             $chain = $currency->parent->name;
         }
 
@@ -440,8 +440,8 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             ->where('type', SystemWalletType::CHANGE)
             ->first();
 
-        if (!$changeWallet) {
-            throw new \Exception('Change wallet not found for currency ' . $currency->symbol, 500);
+        if (! $changeWallet) {
+            throw new \Exception('Change wallet not found for currency '.$currency->symbol, 500);
         }
 
         $walletsToSelectFrom = collect();
