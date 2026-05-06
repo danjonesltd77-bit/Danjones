@@ -130,7 +130,14 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
     public function getTransactionDetails(string $txHash, Currency $currency): array
     {
-        $response = $this->apiClient->get("/{$currency->name}/transaction/{$txHash}", is_gaspump: $currency->is_gaspump);
+        $chain = Str::lower($currency->name);
+        if ($currency->parent != null) {
+            $chain = Str::lower($currency->parent->name);
+            if ($chain === 'dogecoin') {
+                $chain = 'doge';
+            }
+        }
+        $response = $this->apiClient->get("/{$chain}/transaction/{$txHash}", is_gaspump: $currency->is_gaspump);
 
         if (! $response->successful()) {
             throw new \Exception($response->json()['message'] ?? 'Failed to get transaction details', $response->status() ?: 500);

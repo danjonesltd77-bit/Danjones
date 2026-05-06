@@ -30,6 +30,11 @@ class ProcessIncomingWebhookAction
         $address = $payload['address'] ?? $payload['to'] ?? null;
 
         $currencyId = Currency::where('token_currency', $payload['currency'])->first()->id;
+
+        if (isset($payload['tokenMetadata']) && isset($payload['contractAddress']) && $payload['tokenMetadata']['type'] === 'fungible') {
+            $currencyId = Currency::where('token_address', $payload['contractAddress'])->first()->id;
+        }
+
         if (! $txHash || ! $address) {
             Log::warning('Subscription missing required fields', ['payload' => $payload]);
 
@@ -55,6 +60,7 @@ class ProcessIncomingWebhookAction
             2 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
             5 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
             3 => [$this->extractTronAmount($details, $wallet->address), 'completed'],
+            4 => [$this->extractTrc20Amount($details, $wallet->address), 'completed'],
             7 => [$this->extractEthereumAmount($details), 'completed'],
             default => [$this->extractGenericAmount($details), 'pending'],
         };
@@ -205,5 +211,74 @@ class ProcessIncomingWebhookAction
     private function extractGenericAmount(array $details): float
     {
         return (float) ($details['amount'] ?? 0);
+    }
+
+    /**
+     * Extract TRC20 (USDT) amount from TRON logs and validate recipient.
+     */
+    private function extractTrc20Amount(array $details, string $address): float
+    {
+        $logs = $details['log'] ?? [];
+        $transferTopic = 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+        // Convert the Base58 address to its core hex representation for comparison
+        $expectedHex = $this->tronAddressToHex($address);
+
+        foreach ($logs as $log) {
+            $topics = $log['topics'] ?? [];
+            if (empty($topics) || $topics[0] !== $transferTopic) {
+                continue;
+            }
+
+            // In TRC20 Transfer(address,address,uint256), the recipient is in topics[2]
+            // It's a 32-byte hex, left-padded with zeros. Core address is the last 40 chars.
+            $recipientHex = isset($topics[2]) ? substr($topics[2], -40) : null;
+
+            // Verify that the recipient in the log matches our wallet address
+            if ($recipientHex !== $expectedHex) {
+                continue;
+            }
+
+            $data = $log['data'] ?? '0';
+            $rawAmount = hexdec(ltrim($data, '0'));
+
+            // USDT usually has 6 decimals
+            return $rawAmount / 1000000;
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Convert TRON Base58 address to its core hex representation (20 bytes).
+     */
+    private function tronAddressToHex(string $address): ?string
+    {
+        try {
+            $alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+            $num = gmp_init(0);
+
+            foreach (str_split($address) as $char) {
+                $pos = strpos($alphabet, $char);
+                if ($pos === false) {
+                    return null;
+                }
+                $num = gmp_add(gmp_mul($num, 58), $pos);
+            }
+
+            $hex = gmp_strval($num, 16);
+            if (strlen($hex) % 2 !== 0) {
+                $hex = '0'.$hex;
+            }
+
+            // A full decoded TRON address is 25 bytes (50 hex chars):
+            // 1 byte version (0x41) + 20 bytes address + 4 bytes checksum
+            $hex = str_pad($hex, 50, '0', STR_PAD_LEFT);
+
+            // Return only the 20-byte address part (skip version and skip checksum)
+            return substr($hex, 2, 40);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }
