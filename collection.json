@@ -44,5 +44,17 @@
         "chain": "tron-mainnet",
         "subscriptionId": "69fb2993b41da334322c8695",
         "subscriptionType": "INCOMING_FUNGIBLE_TX"
+    },
+    {
+        "currency": "BTC",
+        "chain": "bitcoin-mainnet",
+        "amount": "0.0001366",
+        "address": "bc1qr76j4kxc4jj72240xm89qz8q9qf2dw0edz87ht",
+        "subscriptionId": "69faeba540f743688fdfadf8",
+        "subscriptionType": "INCOMING_NATIVE_TX",
+        "blockNumber": 948174,
+        "txId": "53a1496ce585c0f0a5f39535d2e12cadb86334a316437b1acd600ea1824986d4",
+        "mempool": false,
+        "timestamp": 1778075749226
     }
 ]
