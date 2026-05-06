@@ -27,7 +27,7 @@ class ProcessIncomingWebhookAction
         Log::info('Incoming subscription payload', ['payload' => $payload]);
 
         $txHash = $payload['hash'] ?? $payload['txId'] ?? null;
-        $address = $payload['address'] ?? null;
+        $address = $payload['address'] ?? $payload['to'] ?? null;
 
         $currencyId = Currency::where('token_currency', $payload['currency'])->first()->id;
         if (! $txHash || ! $address) {
