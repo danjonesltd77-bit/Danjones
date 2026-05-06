@@ -27,7 +27,7 @@ class SettingSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            \App\Domains\Core\Models\Setting::updateOrCreate(
+            \App\Domains\Core\Models\Setting::firstOrCreate(
                 ['key' => $setting['key']],
                 $setting
             );
