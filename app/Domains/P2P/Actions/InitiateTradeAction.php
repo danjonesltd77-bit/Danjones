@@ -9,9 +9,11 @@ use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\AdvertisementType;
 use App\Enum\SystemWalletType;
 use App\Enum\TradeStatus;
+use App\Mail\P2P\TradeInitiatedMail;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class InitiateTradeAction
 {
@@ -73,7 +75,7 @@ class InitiateTradeAction
         return DB::transaction(function () use ($ad, $seller, $buyer, $sellerWallet, $escrowWallet, $cryptoAmount, $fiatAmount) {
             // Re-fetch and lock the advertisement to prevent race conditions on available_amount
             $lockedAd = P2PAdvertisement::where('id', $ad->id)->lockForUpdate()->firstOrFail();
-            
+
             // Re-fetch and lock the seller's wallet
             $lockedSellerWallet = \App\Domains\Wallet\Models\Wallet::where('id', $sellerWallet->id)->lockForUpdate()->firstOrFail();
 
@@ -110,6 +112,8 @@ class InitiateTradeAction
                 description: 'P2P Trade Escrow Lock'
             );
 
+            Mail::to($trade->seller->email)->queue(new TradeInitiatedMail($trade));
+            
             return $trade;
         });
     }

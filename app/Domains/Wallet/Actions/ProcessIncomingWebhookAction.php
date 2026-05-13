@@ -8,8 +8,10 @@ use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\Transaction;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
+use App\Mail\Wallet\DepositReceivedMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ProcessIncomingWebhookAction
 {
@@ -109,7 +111,7 @@ class ProcessIncomingWebhookAction
             $usd = $verifiedAmount * $coinUsd;
 
             $ledgerService = app(LedgerService::class);
-            $ledgerService->recordDeposit(
+            $transaction = $ledgerService->recordDeposit(
                 null,
                 $lockedWallet,
                 $verifiedAmount,
@@ -122,6 +124,8 @@ class ProcessIncomingWebhookAction
 
             // Fetch on-chain balance immediately after deposit
             \App\Domains\Wallet\Jobs\UpdateAddressBalanceJob::dispatch($lockedWallet);
+
+            Mail::to($wallet->user->email)->queue(new DepositReceivedMail($transaction));
         });
 
         if ($alreadyProcessed) {

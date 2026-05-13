@@ -4,8 +4,10 @@ namespace App\Domains\P2P\Actions;
 
 use App\Domains\P2P\Models\P2PTrade;
 use App\Enum\TradeStatus;
+use App\Mail\P2P\TradeDisputedMail;
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Mail;
 
 class DisputeTradeAction
 {
@@ -31,6 +33,9 @@ class DisputeTradeAction
             'disputed_by' => $user->id,
             'dispute_reason' => $reason,
         ]);
+
+        $recipient = $trade->buyer_id === $user->id ? $trade->seller : $trade->buyer;
+        Mail::to($recipient->email)->queue(new TradeDisputedMail($trade, $recipient, $user));
 
         return $trade;
     }

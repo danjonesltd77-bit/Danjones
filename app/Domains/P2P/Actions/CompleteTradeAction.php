@@ -10,9 +10,11 @@ use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
 use App\Enum\TradeStatus;
+use App\Mail\P2P\TradeCompletedMail;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class CompleteTradeAction
 {
@@ -51,7 +53,7 @@ class CompleteTradeAction
         return DB::transaction(function () use ($trade, $escrowWallet) {
             // Re-fetch and lock the trade to ensure it hasn't already been completed
             $lockedTrade = P2PTrade::where('id', $trade->id)->lockForUpdate()->firstOrFail();
-            
+
             if ($lockedTrade->status === TradeStatus::COMPLETED) {
                 return $lockedTrade;
             }
@@ -66,7 +68,7 @@ class CompleteTradeAction
             if (! $buyerWallet) {
                 $buyerWallet = $this->createWalletAction->execute($buyer, $lockedTrade->currency_id);
             }
-            
+
             $lockedBuyerWallet = \App\Domains\Wallet\Models\Wallet::where('id', $buyerWallet->id)->lockForUpdate()->firstOrFail();
 
             $feePercentage = $this->settingService->get('p2p_fee_percentage', 0);
@@ -148,6 +150,8 @@ class CompleteTradeAction
                     );
                 }
             }
+
+            Mail::to($trade->buyer->email)->queue(new TradeCompletedMail($trade));
 
             return $lockedTrade;
         });

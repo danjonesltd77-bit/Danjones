@@ -4,8 +4,10 @@ namespace App\Domains\P2P\Actions;
 
 use App\Domains\P2P\Models\P2PTrade;
 use App\Enum\TradeStatus;
+use App\Mail\P2P\TradePaidMail;
 use App\Models\User;
 use Exception;
+use Illuminate\Support\Facades\Mail;
 
 class MarkTradePaidAction
 {
@@ -24,6 +26,8 @@ class MarkTradePaidAction
 
         $trade->status = TradeStatus::PAID;
         $trade->save();
+
+        Mail::to($trade->seller->email)->queue(new TradePaidMail($trade));
 
         return $trade;
     }

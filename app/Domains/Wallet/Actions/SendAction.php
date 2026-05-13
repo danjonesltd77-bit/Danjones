@@ -12,9 +12,11 @@ use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
+use App\Mail\Wallet\WithdrawalRequestedMail;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class SendAction
@@ -31,7 +33,7 @@ class SendAction
         $currency = Currency::with('hdWallet')->findOrFail($currencyId);
         $wallet = $user->wallet($currencyId);
 
-        if (!$currency->is_crypto) {
+        if (! $currency->is_crypto) {
             throw new Exception('Currency is not crypto');
         }
 
@@ -43,7 +45,7 @@ class SendAction
 
         // 1. Get total fee (Network + Service) from gateway estimation
         $totalFee = $this->cryptoGateway->estimateOnchainFee($currency, $amount);
-        $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($currency->symbol), $currency->fee);
+        $serviceFee = (float) $this->settingService->get('send_fee_' . Str::lower($currency->symbol), $currency->fee);
 
         // For UTXO, networkFee is totalFee - serviceFee. For Gaspump, totalFee IS the serviceFee.
         $networkFee = $currency->is_gaspump ? 0 : max(0, $totalFee - $serviceFee);
@@ -78,13 +80,14 @@ class SendAction
 
             // 3. Record Ledger Entries
             // Debit user for the base amount and network/gas cost
-            $this->ledgerService->recordWithdrawal(
+            $transaction = $this->ledgerService->recordWithdrawal(
                 $lockedWallet,
                 null,
                 ($amount + $networkFee),
                 ($amount + $networkFee) * $rate,
                 $res['txId'] ?? $res['signatureId'] ?? Str::random(16),
-                "Transfer to {$recipientAddress}"
+                "Transfer to {$recipientAddress}",
+                ['address' => $recipientAddress, 'txid' => $res['txId'] ?? null]
             );
 
             // Record the Service Fee (debit user, credit system fee wallet)
@@ -109,6 +112,9 @@ class SendAction
                 'currency_id' => $currency->id,
                 'status' => 'pending',
             ]);
+
+            Mail::to($user->email)->queue(new WithdrawalRequestedMail($transaction));
+
 
             return $res;
         });

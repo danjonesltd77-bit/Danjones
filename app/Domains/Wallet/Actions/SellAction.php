@@ -11,9 +11,11 @@ use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
 use App\Enum\WalletStatus;
+use App\Mail\Wallet\SellCompletedMail;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class SellAction
 {
@@ -177,7 +179,7 @@ class SellAction
             UpdateAddressBalanceJob::dispatch($lockedCryptoWallet)->delay(now()->addMinutes(10));
         });
 
-        return [
+        $result = [
             'success' => true,
             'message' => 'Successfully sold crypto for NGN.',
             'naira_amount' => $nairaAmount,
@@ -185,5 +187,14 @@ class SellAction
             'fee_crypto_amount' => $feeInCrypto,
             'usd_amount' => $netUsdAmount,
         ];
+
+        Mail::to($user->email)->queue(new SellCompletedMail($user, [
+            'amount_sold' => $amount,
+            'naira_received' => $nairaAmount,
+            'fee_amount' => $feeInCrypto,
+            'currency_code' => $cryptoWallet->currency->code,
+        ]));
+
+        return $result;
     }
 }
