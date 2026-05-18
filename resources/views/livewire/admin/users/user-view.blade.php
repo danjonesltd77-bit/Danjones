@@ -86,6 +86,17 @@
                                     @endif
                                 </div>
                             </div>
+                            @if($wallet->currency->symbol === 'NGN')
+                                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-darkmode-400/50 flex justify-end">
+                                    <button 
+                                        @click="$dispatch('open-modal', { id: 'credit-wallet-modal' })"
+                                        class="inline-flex items-center gap-x-1.5 px-3 py-1.5 bg-primary text-white text-[11px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+                                    >
+                                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                        Manual Credit
+                                    </button>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -218,6 +229,74 @@
                     {{ $this->transactions->links() }}
                 </div>
             @endif
+        </div>
+    </div>
+
+    <!-- Credit Wallet Modal -->
+    <div 
+        x-data="{ show: false }"
+        @open-modal.window="if ($event.detail.id === 'credit-wallet-modal') { show = true }"
+        @close-modal.window="if ($event.detail.id === 'credit-wallet-modal') { show = false }"
+        x-show="show"
+        class="fixed inset-0 z-[60] overflow-y-auto"
+        style="display: none;"
+    >
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="show" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 transition-opacity bg-slate-900/50 backdrop-blur-sm" @click="show = false"></div>
+
+            <div x-show="show" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" class="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl dark:bg-darkmode-600 sm:my-40 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div class="flex items-center justify-between mb-5 font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    <h3 class="text-sm flex items-center gap-x-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5 text-primary"></i>
+                        Manual Naira Wallet Credit
+                    </h3>
+                    <button @click="show = false" class="text-slate-400 hover:text-slate-500">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form wire:submit="processCredit">
+                    <div class="mb-5 p-4 rounded-lg bg-slate-50 dark:bg-darkmode-400 border border-slate-200 dark:border-darkmode-500/50">
+                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Target User</div>
+                        <div class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ $user->name }}</div>
+                        <div class="text-xs text-slate-500 mt-1">{{ $user->email }}</div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Amount to Credit (NGN)</label>
+                            <input wire:model="creditAmount" type="number" step="0.01" placeholder="0.00" class="w-full h-10 px-4 bg-slate-50 dark:bg-darkmode-800 border-none rounded-lg text-xs focus:ring-1 focus:ring-primary shadow-sm" required>
+                            @error('creditAmount') <span class="text-danger text-[10px] mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Custom Reference (Optional)</label>
+                            <input wire:model="creditReference" type="text" placeholder="Enter custom ref or leave empty to auto-generate" class="w-full h-10 px-4 bg-slate-50 dark:bg-darkmode-800 border-none rounded-lg text-xs font-mono focus:ring-1 focus:ring-primary shadow-sm">
+                            @error('creditReference') <span class="text-danger text-[10px] mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Description / Narration</label>
+                            <textarea wire:model="creditDescription" rows="3" placeholder="Explain the reason for this manual adjustment..." class="w-full p-4 bg-slate-50 dark:bg-darkmode-800 border-none rounded-lg text-xs focus:ring-1 focus:ring-primary shadow-sm" required></textarea>
+                            @error('creditDescription') <span class="text-danger text-[10px] mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Administrator Transaction PIN</label>
+                            <input wire:model="adminPin" type="password" maxlength="4" placeholder="••••" class="w-full h-10 px-4 bg-slate-50 dark:bg-darkmode-800 border-none rounded-lg text-xs text-center tracking-widest font-mono focus:ring-1 focus:ring-primary shadow-sm" required>
+                            @error('adminPin') <span class="text-danger text-[10px] mt-1">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex items-center justify-end gap-3">
+                        <button type="button" @click="show = false" class="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50 dark:hover:bg-darkmode-400 transition-colors">Cancel</button>
+                        <button type="submit" class="px-5 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed" wire:loading.attr="disabled">
+                            <span wire:loading.remove>Confirm Credit</span>
+                            <span wire:loading>Processing...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
