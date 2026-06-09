@@ -64,10 +64,12 @@ class CreateWalletAction
             $parentCurrency = Currency::findOrFail($currency->parent_id);
 
             if (! $user->wallets()->where('currency_id', $parentCurrency->id)->exists()) {
-                throw new Exception("Please create a {$parentCurrency->name} wallet first.", 400);
+                $parentWallet = $this->execute($user, $parentCurrency->id);
+            } else {
+                $parentWallet = $user->wallets()->where('currency_id', $parentCurrency->id)->first();
             }
 
-            $address = $user->wallets()->where('currency_id', $parentCurrency->id)->first()->address;
+            $address = $parentWallet->address;
         } else {
             $address = $this->cryptoGateway->generateAddress($currency, $hdWallet, $chain, $gasWallet);
         }
