@@ -25,7 +25,7 @@ class P2PController extends Controller
     public function indexAds()
     {
         $ads = P2PAdvertisement::where('is_active', true)
-            ->with(['user', 'currency'])
+            ->with(['user', 'currency', 'bankAccount.bank'])
             ->latest()
             ->get();
 
@@ -35,7 +35,7 @@ class P2PController extends Controller
     public function myAds(Request $request)
     {
         $ads = $request->user()->p2pAdvertisements()
-            ->with(['currency'])
+            ->with(['currency', 'bankAccount.bank'])
             ->latest()
             ->get();
 
@@ -48,7 +48,7 @@ class P2PController extends Controller
             $query->where('buyer_id', $request->user()->id)
                 ->orWhere('seller_id', $request->user()->id);
         })
-            ->with(['advertisement', 'seller', 'buyer', 'currency'])
+            ->with(['advertisement.bankAccount.bank', 'seller', 'buyer', 'currency', 'bankAccount.bank'])
             ->latest()
             ->get();
 
@@ -70,6 +70,7 @@ class P2PController extends Controller
     {
         try {
             $ad = $action->execute($request->user(), $request->validated());
+            $ad->load(['user', 'currency', 'bankAccount.bank']);
 
             return ApiResponse::success(['message' => 'Advertisement created successfully', 'data' => $ad], 201);
         } catch (\Exception $e) {
@@ -82,7 +83,8 @@ class P2PController extends Controller
     {
         try {
             $ad = P2PAdvertisement::findOrFail($request->advertisement_id);
-            $trade = $action->execute($request->user(), $ad, $request->amount);
+            $trade = $action->execute($request->user(), $ad, $request->amount, $request->bank_account_id);
+            $trade->load(['advertisement.bankAccount.bank', 'seller', 'buyer', 'currency', 'bankAccount.bank']);
 
             return ApiResponse::success(['message' => 'Trade initiated successfully', 'data' => $trade], 201);
         } catch (\Exception $e) {
@@ -97,6 +99,7 @@ class P2PController extends Controller
             $paymentProofUrl = Storage::disk('public')->url($path);
 
             $trade = $action->execute($request->user(), $trade, $paymentProofUrl);
+            $trade->load(['advertisement.bankAccount.bank', 'seller', 'buyer', 'currency', 'bankAccount.bank']);
 
             return ApiResponse::success(['message' => 'Trade marked as paid', 'data' => $trade]);
         } catch (\Exception $e) {
@@ -108,6 +111,7 @@ class P2PController extends Controller
     {
         try {
             $trade = $action->execute($request->user(), $trade);
+            $trade->load(['advertisement.bankAccount.bank', 'seller', 'buyer', 'currency', 'bankAccount.bank']);
 
             return ApiResponse::success(['message' => 'Trade completed and crypto released', 'data' => $trade]);
         } catch (\Exception $e) {
@@ -119,6 +123,7 @@ class P2PController extends Controller
     {
         try {
             $trade = $action->execute($request->user(), $trade);
+            $trade->load(['advertisement.bankAccount.bank', 'seller', 'buyer', 'currency', 'bankAccount.bank']);
 
             return ApiResponse::success(['message' => 'Trade cancelled', 'data' => $trade]);
         } catch (\Exception $e) {
@@ -130,6 +135,7 @@ class P2PController extends Controller
     {
         try {
             $trade = $action->execute($request->user(), $trade, $request->reason);
+            $trade->load(['advertisement.bankAccount.bank', 'seller', 'buyer', 'currency', 'bankAccount.bank']);
 
             return ApiResponse::success(['message' => 'Trade disputed successfully', 'data' => $trade]);
         } catch (\Exception $e) {

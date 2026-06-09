@@ -20,6 +20,7 @@ class P2PAdvertisement extends Model
     protected $fillable = [
         'user_id',
         'currency_id',
+        'bank_account_id',
         'type',
         'price',
         'total_amount',
@@ -56,5 +57,10 @@ class P2PAdvertisement extends Model
     public function trades(): HasMany
     {
         return $this->hasMany(P2PTrade::class, 'advertisement_id');
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domains\Bank\Models\BankAccount::class);
     }
 }

@@ -71,6 +71,7 @@ class CreateAdvertisementAction
 
         return $user->p2pAdvertisements()->create([
             'currency_id' => $data['currency_id'],
+            'bank_account_id' => $data['bank_account_id'] ?? null,
             'type' => $data['type'],
             'price' => $data['price'],
             'total_amount' => $data['total_amount'],

@@ -42,6 +42,30 @@ beforeEach(function () {
         'address' => 'sys-escrow',
         'balance' => 0.0,
     ]);
+
+    // Create a Bank
+    $this->bank = \App\Domains\Bank\Models\Bank::create([
+        'name' => 'Test Bank',
+        'code' => 'TEST_BANK',
+    ]);
+
+    // Create Seller's Bank Account
+    $this->sellerBankAccount = \App\Domains\Bank\Models\BankAccount::create([
+        'user_id' => $this->seller->id,
+        'bank_id' => $this->bank->id,
+        'account_name' => 'Seller Account',
+        'account_number' => '1234567890',
+        'is_active' => true,
+    ]);
+
+    // Create Buyer's Bank Account
+    $this->buyerBankAccount = \App\Domains\Bank\Models\BankAccount::create([
+        'user_id' => $this->buyer->id,
+        'bank_id' => $this->bank->id,
+        'account_name' => 'Buyer Account',
+        'account_number' => '0987654321',
+        'is_active' => true,
+    ]);
 });
 
 it('can create a sell advertisement if you have sufficient crypto', function () {
@@ -53,12 +77,14 @@ it('can create a sell advertisement if you have sufficient crypto', function () 
         'min_limit' => 5000,
         'max_limit' => 250000,
         'terms' => 'Fast payment only',
+        'bank_account_id' => $this->sellerBankAccount->id,
     ]);
 
     $response->assertStatus(201);
     $this->assertDatabaseHas('p2p_advertisements', [
         'user_id' => $this->seller->id,
         'total_amount' => 5.0,
+        'bank_account_id' => $this->sellerBankAccount->id,
     ]);
 });
 
@@ -81,6 +107,7 @@ it('prevents creating multiple ads that cumulatively exceed balance', function (
         'total_amount' => 5.0,
         'min_limit' => 1000,
         'max_limit' => 100000,
+        'bank_account_id' => $this->sellerBankAccount->id,
     ]);
 
     $response->assertStatus(400)->assertJsonPath('message', 'Insufficient crypto balance. Your active advertisements already commit a portion of your balance.');
@@ -121,6 +148,7 @@ it('prevents creating a sell ad without sufficient crypto balance', function () 
         'total_amount' => 50.0, // Seller only has 10
         'min_limit' => 5000,
         'max_limit' => 2500000,
+        'bank_account_id' => $this->sellerBankAccount->id,
     ]);
 
     $response->assertStatus(400)->assertJsonPath('message', 'Insufficient crypto balance. Your active advertisements already commit a portion of your balance.');
@@ -415,6 +443,7 @@ it('activates custodial wallet before creating an ad for gas pump currency', fun
         'total_amount' => 1.0,
         'min_limit' => 500,
         'max_limit' => 5000,
+        'bank_account_id' => $this->sellerBankAccount->id,
     ]);
 
     // Should return 400 because it re-throws activation exception after calling activate
@@ -535,4 +564,82 @@ it('prevents marking a trade as paid without uploading a proof of payment', func
 
     $trade->refresh();
     expect($trade->status)->toBe(TradeStatus::PENDING);
+});
+
+it('fails to create a sell advertisement without a bank account', function () {
+    $response = actingAs($this->seller)->postJson('/api/p2p/create-ads', [
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL->value,
+        'price' => 50000,
+        'total_amount' => 5.0,
+        'min_limit' => 5000,
+        'max_limit' => 250000,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['bank_account_id']);
+});
+
+it('fails to create a sell advertisement with a bank account not owned by the seller', function () {
+    $anotherUser = User::factory()->create();
+    $anotherBankAccount = \App\Domains\Bank\Models\BankAccount::create([
+        'user_id' => $anotherUser->id,
+        'bank_id' => $this->bank->id,
+        'account_name' => 'Other Account',
+        'account_number' => '5555555555',
+        'is_active' => true,
+    ]);
+
+    $response = actingAs($this->seller)->postJson('/api/p2p/create-ads', [
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL->value,
+        'price' => 50000,
+        'total_amount' => 5.0,
+        'min_limit' => 5000,
+        'max_limit' => 250000,
+        'bank_account_id' => $anotherBankAccount->id,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['bank_account_id']);
+});
+
+it('requires bank account when initiating a trade on a buy advertisement', function () {
+    // Ad creator is BUYING crypto (paying fiat to seller)
+    $ad = P2PAdvertisement::factory()->create([
+        'user_id' => $this->buyer->id, // buyer is ad creator
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::BUY->value,
+        'price' => 1000,
+        'total_amount' => 5.0,
+        'available_amount' => 5.0,
+        'min_limit' => 500,
+        'max_limit' => 5000,
+    ]);
+
+    // Seller (initiator) has 10 BTC
+    $this->sellerWallet->balance = 10.0;
+    $this->sellerWallet->save();
+
+    // Try initiating trade without bank_account_id (should fail since ad type is BUY)
+    $response = actingAs($this->seller)->postJson('/api/p2p/initiate-trade', [
+        'advertisement_id' => $ad->id,
+        'amount' => 1000,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['bank_account_id']);
+
+    // Initiate trade with seller's bank account (should pass)
+    $response = actingAs($this->seller)->postJson('/api/p2p/initiate-trade', [
+        'advertisement_id' => $ad->id,
+        'amount' => 1000,
+        'bank_account_id' => $this->sellerBankAccount->id,
+    ]);
+
+    $response->assertStatus(201);
+
+    // Verify trade bank_account_id is set to seller's bank account
+    $trade = P2PTrade::latest()->first();
+    expect($trade->bank_account_id)->toEqual($this->sellerBankAccount->id);
 });

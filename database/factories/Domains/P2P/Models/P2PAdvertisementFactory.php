@@ -22,9 +22,12 @@ class P2PAdvertisementFactory extends Factory
      */
     public function definition(): array
     {
+        $user = User::factory();
+
         return [
-            'user_id' => User::factory(),
+            'user_id' => $user,
             'currency_id' => Currency::factory(),
+            'bank_account_id' => \App\Domains\Bank\Models\BankAccount::factory()->state(['user_id' => $user]),
             'type' => fake()->randomElement([AdvertisementType::BUY, AdvertisementType::SELL]),
             'price' => fake()->randomFloat(2, 50000, 100000000), // Prices in NGN
             'total_amount' => fake()->randomFloat(4, 0.1, 10),

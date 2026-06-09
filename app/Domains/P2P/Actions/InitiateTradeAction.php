@@ -22,7 +22,7 @@ class InitiateTradeAction
     /**
      * @throws Exception
      */
-    public function execute(User $initiator, P2PAdvertisement $ad, float $fiatAmount): P2PTrade
+    public function execute(User $initiator, P2PAdvertisement $ad, float $fiatAmount, ?int $bankAccountId = null): P2PTrade
     {
         if (! $ad->is_active) {
             throw new Exception('This advertisement is no longer active.', 400);
@@ -58,6 +58,7 @@ class InitiateTradeAction
         $isAdCreatorSelling = $ad->type === AdvertisementType::SELL;
         $seller = $isAdCreatorSelling ? $ad->user : $initiator;
         $buyer = $isAdCreatorSelling ? $initiator : $ad->user;
+        $bankAccountIdToUse = $isAdCreatorSelling ? $ad->bank_account_id : $bankAccountId;
 
         $sellerWallet = $seller->wallet($ad->currency_id);
         if (! $sellerWallet || $sellerWallet->balance < $cryptoAmount) {
@@ -72,7 +73,7 @@ class InitiateTradeAction
             throw new Exception('System escrow wallet not found.', 500);
         }
 
-        return DB::transaction(function () use ($ad, $seller, $buyer, $sellerWallet, $escrowWallet, $cryptoAmount, $fiatAmount) {
+        return DB::transaction(function () use ($ad, $seller, $buyer, $sellerWallet, $escrowWallet, $cryptoAmount, $fiatAmount, $bankAccountIdToUse) {
             // Re-fetch and lock the advertisement to prevent race conditions on available_amount
             $lockedAd = P2PAdvertisement::where('id', $ad->id)->lockForUpdate()->firstOrFail();
 
@@ -100,6 +101,7 @@ class InitiateTradeAction
                 'crypto_amount' => $cryptoAmount,
                 'fiat_amount' => $fiatAmount,
                 'status' => TradeStatus::PENDING,
+                'bank_account_id' => $bankAccountIdToUse,
             ]);
 
             $reference = 'trade_'.$trade->id;
@@ -113,7 +115,7 @@ class InitiateTradeAction
             );
 
             Mail::to($trade->seller->email)->queue(new TradeInitiatedMail($trade));
-            
+
             return $trade;
         });
     }

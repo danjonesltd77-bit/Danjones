@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\P2P;
 
+use App\Enum\AdvertisementType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreAdvertisementRequest extends FormRequest
 {
@@ -23,12 +25,19 @@ class StoreAdvertisementRequest extends FormRequest
     {
         return [
             'currency_id' => ['required', 'exists:currencies,id'],
-            'type' => ['required', \Illuminate\Validation\Rule::enum(\App\Enum\AdvertisementType::class)],
+            'type' => ['required', Rule::enum(AdvertisementType::class)],
             'price' => ['required', 'numeric', 'min:0'],
             'total_amount' => ['required', 'numeric', 'min:0'],
             'min_limit' => ['required', 'numeric', 'min:0'],
             'max_limit' => ['required', 'numeric', 'gte:min_limit'],
             'terms' => ['nullable', 'string', 'max:1000'],
+            'bank_account_id' => [
+                'required_if:type,sell',
+                'nullable',
+                Rule::exists('bank_accounts', 'id')->where(function ($query) {
+                    $query->where('user_id', $this->user()?->id);
+                }),
+            ],
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Domains\P2P\Models;
 
+use App\Domains\Bank\Models\BankAccount;
 use App\Domains\Wallet\Models\Currency;
 use App\Enum\TradeStatus;
 use App\Models\User;
@@ -27,6 +28,7 @@ class P2PTrade extends Model
         'disputed_by',
         'dispute_reason',
         'payment_proof',
+        'bank_account_id',
     ];
 
     protected function casts(): array
@@ -56,5 +58,10 @@ class P2PTrade extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 }
