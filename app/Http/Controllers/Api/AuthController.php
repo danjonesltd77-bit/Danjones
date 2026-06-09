@@ -14,12 +14,14 @@ use App\Http\Requests\Api\ForgotPasswordRequest;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Requests\Api\ResetPasswordRequest;
 use App\Http\Requests\Api\SetTransactionPinRequest;
+use App\Http\Requests\Api\UpdateProfileRequest;
 use App\Http\Requests\Api\UpdateTransactionPinRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -205,6 +207,39 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Password has been reset successfully.',
+        ]);
+    }
+
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = $request->user();
+
+        if ($request->has('phone') && $request->phone !== $user->phone) {
+            $user->phone = $request->phone;
+            $user->phone_verified_at = null;
+        }
+
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+
+            // Delete old avatar file if it was uploaded locally
+            if ($user->avatar) {
+                $storageUrl = Storage::disk('public')->url('');
+                if (str_starts_with($user->avatar, $storageUrl)) {
+                    $oldPath = str_replace($storageUrl, '', $user->avatar);
+                    Storage::disk('public')->delete(ltrim($oldPath, '/'));
+                }
+            }
+
+            $user->avatar = Storage::disk('public')->url($path);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'user' => new UserResource($user),
         ]);
     }
 }
