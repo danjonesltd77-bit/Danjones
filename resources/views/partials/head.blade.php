@@ -10,6 +10,7 @@
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 <!-- BEGIN: CSS Assets-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="{{ asset('dist/css/vendors/tippy.css') }}">
 <link rel="stylesheet" href="{{ asset('dist/css/vendors/simplebar.css') }}">
 <link rel="stylesheet" href="{{ asset('dist/css/themes/echo.css') }}">

@@ -35,6 +35,7 @@ class SendActionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \Illuminate\Support\Facades\Mail::fake();
         $this->user = User::factory()->create();
         $this->gateway = Mockery::mock(CryptoGatewayInterface::class);
         $this->marketData = Mockery::mock(MarketDataGatewayInterface::class);

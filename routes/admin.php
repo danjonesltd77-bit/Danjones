@@ -7,9 +7,10 @@ use App\Livewire\Admin\P2P\AdsManagement;
 use App\Livewire\Admin\P2P\TradesManagement;
 use App\Livewire\Admin\P2P\TradeView;
 use App\Livewire\Admin\Roles\RolesPermissionsManagement;
+use App\Livewire\Admin\System\LogViewer;
+use App\Livewire\Admin\System\SettingsManagement;
 use App\Livewire\Admin\Transactions\TransactionsManagement;
 use App\Livewire\Admin\Transactions\TransactionView;
-use App\Livewire\Admin\System\LogViewer;
 use App\Livewire\Admin\Users\UsersManagement;
 use App\Livewire\Admin\Users\UserView;
 use Illuminate\Support\Facades\Route;
@@ -44,5 +45,6 @@ Route::middleware(['auth', 'verified'])->name('admin.')->prefix('admin')->group(
 
     Route::prefix('system')->name('system.')->group(function () {
         Route::get('logs', LogViewer::class)->name('logs');
+        Route::get('settings', SettingsManagement::class)->name('settings');
     });
 });

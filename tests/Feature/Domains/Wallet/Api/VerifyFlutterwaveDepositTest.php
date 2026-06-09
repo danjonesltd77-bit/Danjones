@@ -13,6 +13,7 @@ class VerifyFlutterwaveDepositTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Currency $ngn;
 
     protected function setUp(): void
@@ -24,23 +25,23 @@ class VerifyFlutterwaveDepositTest extends TestCase
             'symbol' => 'NGN',
             'name' => 'Naira',
             'is_crypto' => false,
-            'decimal' => 2
+            'decimal' => 2,
         ]);
 
         \App\Domains\Wallet\Models\Wallet::create([
             'user_id' => $this->user->id,
             'currency_id' => $this->ngn->id,
             'balance' => 0,
-            'address' => 'NGN-ADDR-' . $this->user->id,
+            'address' => 'NGN-ADDR-'.$this->user->id,
         ]);
     }
 
     public function test_it_can_verify_and_confirm_flutterwave_deposit()
     {
         $reference = 'flw-tx-123';
-        
+
         Http::fake([
-            'api.flutterwave.com/v3/transactions/*/verify' => Http::response([
+            'https://api.flutterwave.com/v3/transactions/verify_by_reference*' => Http::response([
                 'status' => 'success',
                 'message' => 'Transaction fetched successfully',
                 'data' => [
@@ -80,12 +81,12 @@ class VerifyFlutterwaveDepositTest extends TestCase
     public function test_it_does_not_double_credit_for_same_reference()
     {
         $reference = 'flw-tx-123';
-        
+
         // Pre-create transaction
         $wallet = $this->user->wallet($this->ngn->id);
         $wallet->balance = 5000;
         $wallet->save();
-        
+
         \App\Domains\Wallet\Models\Transaction::create([
             'user_id' => $this->user->id,
             'wallet_id' => $wallet->id,
@@ -115,9 +116,9 @@ class VerifyFlutterwaveDepositTest extends TestCase
     public function test_it_fails_if_transaction_status_is_not_successful()
     {
         $reference = 'flw-tx-failed';
-        
+
         Http::fake([
-            'api.flutterwave.com/v3/transactions/*/verify' => Http::response([
+            'https://api.flutterwave.com/v3/transactions/verify_by_reference*' => Http::response([
                 'status' => 'success',
                 'data' => [
                     'status' => 'failed',

@@ -143,7 +143,25 @@
                     <div class="side-menu__link__title">Two-factor Auth</div>
                 </a>
             </li>
-                        <li class="side-menu__divider">SYSTEM</li><li><a wire:navigate href="{{ route('admin.system.logs') }}" class="side-menu__link {{ request()->routeIs('admin.system.logs') ? 'side-menu__link--active' : '' }}"><i data-tw-merge="" data-lucide="file-text" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i><div class="side-menu__link__title">System Logs</div></a></li><!-- END: First Child -->
+
+            <li class="side-menu__divider">SYSTEM</li>
+            
+            <li>
+                <a wire:navigate href="{{ route('admin.system.logs') }}" class="side-menu__link {{ request()->routeIs('admin.system.logs') ? 'side-menu__link--active' : '' }}">
+                    <i data-tw-merge="" data-lucide="file-text" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                    <div class="side-menu__link__title">System Logs</div>
+                </a>
+            </li>
+
+            @can('manage settings')
+                <li>
+                    <a wire:navigate href="{{ route('admin.system.settings') }}" class="side-menu__link {{ request()->routeIs('admin.system.settings') ? 'side-menu__link--active' : '' }}">
+                        <i data-tw-merge="" data-lucide="settings" class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
+                        <div class="side-menu__link__title">System Settings</div>
+                    </a>
+                </li>
+            @endcan
+            <!-- END: First Child -->
         </ul>
     </div>
 </div>
