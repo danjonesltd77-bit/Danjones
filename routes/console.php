@@ -15,6 +15,7 @@ Artisan::command('wallet:scan-balances', function () {
     $this->info('Job dispatched successfully.');
 })->purpose('Scan and update all crypto wallet on-chain balances');
 
+Schedule::command('wallet:update-price-change')->hourly();
 Schedule::command('wallet:check-pending-deposits')->everyMinute();
 Schedule::command('p2p:cancel-expired-trades')->everyMinute();
 Schedule::job(new UpdateAddressBalanceJob)->daily();

@@ -55,4 +55,8 @@ return [
         'secret_key' => env('FLUTTERWAVE_SECRET_KEY'),
     ],
 
+    'coingecko' => [
+        'base_url' => env('COINGECKO_URL', 'https://api.coingecko.com/api/v3'),
+    ],
+
 ];

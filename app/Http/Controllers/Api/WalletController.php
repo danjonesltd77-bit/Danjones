@@ -25,8 +25,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-use function Pest\Laravel\json;
-
 class WalletController extends Controller
 {
     public function __construct(
@@ -70,6 +68,16 @@ class WalletController extends Controller
                 : 1 / $usdNgnRate;
 
             $wallet->balance_usd = (float) $wallet->balance * $price;
+            $wallet->rate_usd = (float) $price;
+
+            if ($wallet->currency->is_crypto) {
+                $changePercentage = ($wallet->currency->price_change_24h ?? 0) / 100;
+                $wallet->pnl_24h_amount = $wallet->balance_usd * ($changePercentage / (1 + $changePercentage));
+                $wallet->pnl_24h_percentage = (float) ($wallet->currency->price_change_24h ?? 0);
+            } else {
+                $wallet->pnl_24h_amount = 0.0;
+                $wallet->pnl_24h_percentage = 0.0;
+            }
         });
 
         return ApiResponse::success([
@@ -98,6 +106,8 @@ class WalletController extends Controller
                 'currency_id' => $wallet->currency_id,
                 'symbol' => $wallet->currency->symbol,
                 'name' => $wallet->currency->name,
+                'image' => $wallet->currency->image,
+                'decimal_places' => $wallet->currency->decimal,
                 'balance' => (float) $wallet->balance,
                 'rate_usd' => (float) $rate,
                 'balance_usd' => (float) $wallet->balance * $rate,
@@ -124,6 +134,16 @@ class WalletController extends Controller
             : 1 / $usdNgnRate;
 
         $wallet->balance_usd = (float) $wallet->balance * $price;
+        $wallet->rate_usd = (float) $price;
+
+        if ($wallet->currency->is_crypto) {
+            $changePercentage = ($wallet->currency->price_change_24h ?? 0) / 100;
+            $wallet->pnl_24h_amount = $wallet->balance_usd * ($changePercentage / (1 + $changePercentage));
+            $wallet->pnl_24h_percentage = (float) ($wallet->currency->price_change_24h ?? 0);
+        } else {
+            $wallet->pnl_24h_amount = 0.0;
+            $wallet->pnl_24h_percentage = 0.0;
+        }
 
         $resource = (new WalletResource($wallet->load([
             'currency',

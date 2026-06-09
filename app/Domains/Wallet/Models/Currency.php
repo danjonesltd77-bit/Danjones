@@ -21,6 +21,7 @@ class Currency extends Model
         'name',
         'image',
         'symbol',
+        'coingecko_id',
         'decimal',
         'fee',
         'is_crypto',
@@ -31,6 +32,14 @@ class Currency extends Model
         'token_address',
         'contract_type',
         'change_address',
+        'price_change_24h',
+    ];
+
+    protected $casts = [
+        'price_change_24h' => 'float',
+        'is_crypto' => 'boolean',
+        'is_active' => 'boolean',
+        'is_gaspump' => 'boolean',
     ];
 
     public function parent()

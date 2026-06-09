@@ -20,6 +20,8 @@ class DashboardResource extends JsonResource
             'wallets' => WalletResource::collection($this['wallets']),
             'total_balance_usd' => round($this['total_balance_usd'], 2),
             'total_balance_ngn' => round($this['total_balance_ngn'], 2),
+            'pnl_24h_amount' => round($this['pnl_24h_amount'] ?? 0.0, 2),
+            'pnl_24h_percentage' => round($this['pnl_24h_percentage'] ?? 0.0, 2),
         ];
     }
 }
