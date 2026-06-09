@@ -10,7 +10,6 @@ use App\Domains\Wallet\Services\LedgerService;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class VerifyFlutterwaveDepositAction
 {
@@ -23,9 +22,6 @@ class VerifyFlutterwaveDepositAction
     /**
      * Verify and process a Flutterwave deposit.
      *
-     * @param User $user
-     * @param string $reference
-     * @return array
      * @throws Exception
      */
     public function execute(User $user, string $reference): array
@@ -59,17 +55,17 @@ class VerifyFlutterwaveDepositAction
 
         // 4. Get User's Naira Wallet
         $currency = Currency::where('symbol', 'NGN')->first();
-        if (!$currency) {
+        if (! $currency) {
             throw new Exception('Naira currency not configured in the system.');
         }
 
         $wallet = $user->wallet($currency->id);
-        if (!$wallet) {
+        if (! $wallet) {
             throw new Exception('Naira wallet not found for the user.');
         }
 
         // 5. Process Ledger and Update Balance
-        return DB::transaction(function () use ($wallet, $amount, $reference, $flutterwaveData) {
+        return DB::transaction(function () use ($user, $wallet, $amount, $reference, $flutterwaveData) {
             $usdNgnRate = $this->marketDataGateway->getUsdNgnRate();
             $usdAmount = $amount / ($usdNgnRate ?: 1);
 
@@ -87,6 +83,8 @@ class VerifyFlutterwaveDepositAction
             $transaction = Transaction::where('reference', $reference)
                 ->where('wallet_id', $wallet->id)
                 ->first();
+
+            send_notification($user, 'Deposit Received', 'Your deposit of '.crypto_format($amount).' NGN was successful.', 'deposit_received', ['transaction_id' => $transaction?->id, 'amount' => $amount, 'currency' => 'NGN']);
 
             return [
                 'success' => true,

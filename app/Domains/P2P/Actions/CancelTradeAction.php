@@ -72,6 +72,26 @@ class CancelTradeAction
                 description: 'P2P Trade Cancelled Refund'
             );
 
+            $currencySymbol = $lockedTrade->currency?->symbol ?? 'crypto';
+
+            // Notify Buyer
+            send_notification(
+                $lockedTrade->buyer,
+                'P2P Trade Cancelled',
+                'The trade for '.crypto_format($lockedTrade->crypto_amount)." {$currencySymbol} has been cancelled.",
+                'p2p_trade_cancelled',
+                ['trade_id' => $lockedTrade->id, 'role' => 'buyer']
+            );
+
+            // Notify Seller
+            send_notification(
+                $seller,
+                'P2P Trade Cancelled',
+                'The trade has been cancelled. '.crypto_format($lockedTrade->crypto_amount)." {$currencySymbol} has been refunded to your wallet.",
+                'p2p_trade_cancelled',
+                ['trade_id' => $lockedTrade->id, 'role' => 'seller']
+            );
+
             return $lockedTrade;
         });
     }

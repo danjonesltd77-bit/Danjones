@@ -30,6 +30,15 @@ class MarkTradePaidAction
 
         Mail::to($trade->seller->email)->queue(new TradePaidMail($trade));
 
+        $currencySymbol = $trade->currency?->symbol ?? 'crypto';
+        send_notification(
+            $trade->seller,
+            'P2P Payment Made',
+            'The buyer has marked the trade as paid for '.crypto_format($trade->crypto_amount)." {$currencySymbol}.",
+            'p2p_trade_paid',
+            ['trade_id' => $trade->id]
+        );
+
         return $trade;
     }
 }

@@ -37,6 +37,24 @@ class DisputeTradeAction
         $recipient = $trade->buyer_id === $user->id ? $trade->seller : $trade->buyer;
         Mail::to($recipient->email)->queue(new TradeDisputedMail($trade, $recipient, $user));
 
+        $currencySymbol = $trade->currency?->symbol ?? 'crypto';
+
+        send_notification(
+            $recipient,
+            'Trade Disputed',
+            'The trade for '.crypto_format($trade->crypto_amount)." {$currencySymbol} has been disputed by the other party.",
+            'p2p_trade_disputed',
+            ['trade_id' => $trade->id, 'role' => 'recipient']
+        );
+
+        send_notification(
+            $user,
+            'Trade Disputed',
+            'You have raised a dispute for this trade.',
+            'p2p_trade_disputed',
+            ['trade_id' => $trade->id, 'role' => 'initiator']
+        );
+
         return $trade;
     }
 }

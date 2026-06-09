@@ -153,6 +153,26 @@ class CompleteTradeAction
 
             Mail::to($trade->buyer->email)->queue(new TradeCompletedMail($trade));
 
+            $currencySymbol = $lockedTrade->currency?->symbol ?? 'crypto';
+
+            // Notify Buyer
+            send_notification(
+                $buyer,
+                'P2P Trade Completed',
+                'The seller has released '.crypto_format($lockedTrade->crypto_amount)." {$currencySymbol} to your wallet.",
+                'p2p_trade_completed',
+                ['trade_id' => $lockedTrade->id, 'role' => 'buyer']
+            );
+
+            // Notify Seller
+            send_notification(
+                $lockedTrade->seller,
+                'P2P Trade Completed',
+                'You have successfully completed the trade and released '.crypto_format($lockedTrade->crypto_amount)." {$currencySymbol}.",
+                'p2p_trade_completed',
+                ['trade_id' => $lockedTrade->id, 'role' => 'seller']
+            );
+
             return $lockedTrade;
         });
     }

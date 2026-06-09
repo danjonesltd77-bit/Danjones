@@ -80,7 +80,9 @@ class SendActionTest extends TestCase
             ->with(\Mockery::any(), \Mockery::any(), \Mockery::any(), \Mockery::any(), \Mockery::any(), \Mockery::any())
             ->andReturn('tx_123');
 
-        $this->ledger->shouldReceive('recordWithdrawal')->once();
+        $dummyTx = new \App\Domains\Wallet\Models\Transaction;
+        $dummyTx->id = 123;
+        $this->ledger->shouldReceive('recordWithdrawal')->once()->andReturn($dummyTx);
         $this->ledger->shouldReceive('recordFee')->once();
 
         $action = new SendAction($this->gateway, $this->ledger, $this->marketData, $this->settings);
@@ -127,7 +129,9 @@ class SendActionTest extends TestCase
 
         $this->marketData->shouldReceive('getExchangeRate')->andReturn(1.0);
 
-        $this->ledger->shouldReceive('recordWithdrawal')->once();
+        $dummyTx = new \App\Domains\Wallet\Models\Transaction;
+        $dummyTx->id = 123;
+        $this->ledger->shouldReceive('recordWithdrawal')->once()->andReturn($dummyTx);
         $this->ledger->shouldReceive('recordFee')->once();
 
         $action = new SendAction($this->gateway, $this->ledger, $this->marketData, $this->settings);

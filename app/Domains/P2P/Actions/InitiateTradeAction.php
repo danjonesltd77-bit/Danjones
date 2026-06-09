@@ -116,6 +116,24 @@ class InitiateTradeAction
 
             Mail::to($trade->seller->email)->queue(new TradeInitiatedMail($trade));
 
+            $currencySymbol = $ad->currency?->symbol ?? 'crypto';
+
+            send_notification(
+                $seller,
+                'New P2P Trade',
+                'A buyer has initiated a trade for '.crypto_format($cryptoAmount)." {$currencySymbol} ({$fiatAmount} NGN).",
+                'p2p_trade_initiated',
+                ['trade_id' => $trade->id, 'role' => 'seller']
+            );
+
+            send_notification(
+                $buyer,
+                'Trade Initiated',
+                'You have opened a trade for '.crypto_format($cryptoAmount)." {$currencySymbol} ({$fiatAmount} NGN).",
+                'p2p_trade_initiated',
+                ['trade_id' => $trade->id, 'role' => 'buyer']
+            );
+
             return $trade;
         });
     }

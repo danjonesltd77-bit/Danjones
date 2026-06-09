@@ -45,7 +45,7 @@ class SendAction
 
         // 1. Get total fee (Network + Service) from gateway estimation
         $totalFee = $this->cryptoGateway->estimateOnchainFee($currency, $amount);
-        $serviceFee = (float) $this->settingService->get('send_fee_' . Str::lower($currency->symbol), $currency->fee);
+        $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($currency->symbol), $currency->fee);
 
         // For UTXO, networkFee is totalFee - serviceFee. For Gaspump, totalFee IS the serviceFee.
         $networkFee = $currency->is_gaspump ? 0 : max(0, $totalFee - $serviceFee);
@@ -115,6 +115,7 @@ class SendAction
 
             Mail::to($user->email)->queue(new WithdrawalRequestedMail($transaction));
 
+            send_notification($user, 'Withdrawal Requested', "Your withdrawal request of {$amount} {$currency->symbol} has been initiated.", 'withdrawal_requested', ['transaction_id' => $transaction->id, 'amount' => $amount, 'currency' => $currency->symbol]);
 
             return $res;
         });

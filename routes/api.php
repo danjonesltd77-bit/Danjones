@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\P2PController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\WalletController;
@@ -61,6 +62,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('verifications')->controller(VerificationController::class)->group(function () {
         Route::get('/', 'index');
         Route::post('/verify-nin', 'verifyNin');
+    });
+
+    Route::prefix('notifications')->controller(NotificationController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/{id}/read', 'markAsRead');
+        Route::post('/read-all', 'markAllAsRead');
     });
 });
 

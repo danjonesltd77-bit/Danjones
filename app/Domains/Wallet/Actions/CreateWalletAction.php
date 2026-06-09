@@ -36,11 +36,15 @@ class CreateWalletAction
 
         // Fiat / non-crypto wallets (e.g. NGN) — no gateway call needed
         if (! $currency->is_crypto) {
-            return $user->wallets()->create([
+            $wallet = $user->wallets()->create([
                 'currency_id' => $currencyId,
                 'address' => $user->email,
                 'status' => WalletStatus::ACTIVE,
             ]);
+
+            send_notification($user, 'Wallet Created', "Your {$currency->name} wallet has been successfully created.", 'wallet_created', ['wallet_id' => $wallet->id, 'currency' => $currency->symbol]);
+
+            return $wallet;
         }
 
         // Crypto wallet — derive address via HD wallet + gateway
@@ -101,6 +105,8 @@ class CreateWalletAction
                 throw new Exception("Failed to create webhook subscription for {$currency->symbol}", 500);
             }
         }
+
+        send_notification($user, 'Wallet Created', "Your {$currency->name} wallet has been successfully created.", 'wallet_created', ['wallet_id' => $wallet->id, 'currency' => $currency->symbol]);
 
         return $wallet;
     }

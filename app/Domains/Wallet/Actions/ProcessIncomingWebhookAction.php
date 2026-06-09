@@ -126,6 +126,8 @@ class ProcessIncomingWebhookAction
             \App\Domains\Wallet\Jobs\UpdateAddressBalanceJob::dispatch($lockedWallet);
 
             Mail::to($wallet->user->email)->queue(new DepositReceivedMail($transaction));
+
+            send_notification($wallet->user, 'Deposit Received', "You have received a deposit of {$verifiedAmount} {$currency->symbol}.", 'deposit_received', ['transaction_id' => $transaction->id, 'amount' => $verifiedAmount, 'currency' => $currency->symbol]);
         });
 
         if ($alreadyProcessed) {

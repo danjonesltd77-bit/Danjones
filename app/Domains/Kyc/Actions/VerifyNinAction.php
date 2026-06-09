@@ -87,6 +87,13 @@ class VerifyNinAction
             'reason' => $result['message'] ?? null,
         ]);
 
+        $title = $status === 'approved' ? 'KYC Verification Successful' : 'KYC Verification Failed';
+        $msg = $status === 'approved'
+            ? 'Your NIN verification was successful.'
+            : 'Your NIN verification was rejected. '.($result['message'] ?? '');
+
+        send_notification($user, $title, $msg, 'kyc_verification', ['status' => $status, 'type' => 'NIN']);
+
         return $result;
     }
 }
