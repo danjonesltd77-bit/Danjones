@@ -14,7 +14,7 @@ class MarkTradePaidAction
     /**
      * @throws Exception
      */
-    public function execute(User $user, P2PTrade $trade): P2PTrade
+    public function execute(User $user, P2PTrade $trade, string $paymentProofUrl): P2PTrade
     {
         if ($trade->status !== TradeStatus::PENDING) {
             throw new Exception('Trade is not in a pending state.', 400);
@@ -25,6 +25,7 @@ class MarkTradePaidAction
         }
 
         $trade->status = TradeStatus::PAID;
+        $trade->payment_proof = $paymentProofUrl;
         $trade->save();
 
         Mail::to($trade->seller->email)->queue(new TradePaidMail($trade));

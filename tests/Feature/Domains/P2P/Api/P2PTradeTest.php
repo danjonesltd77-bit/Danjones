@@ -13,6 +13,8 @@ use App\Enum\SystemWalletType;
 use App\Enum\TradeStatus;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
 
@@ -479,4 +481,58 @@ it('deducts percentage fee when completing a p2p trade', function () {
 
     $feeWallet->refresh();
     expect((float) $feeWallet->balance)->toEqual($feeAmount);
+});
+
+it('allows buyer to mark a trade as paid by uploading a proof of payment', function () {
+    Storage::fake('public');
+
+    $ad = P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+    ]);
+
+    $trade = P2PTrade::factory()->create([
+        'advertisement_id' => $ad->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'status' => TradeStatus::PENDING,
+    ]);
+
+    $proof = UploadedFile::fake()->image('receipt.jpg');
+
+    $response = actingAs($this->buyer)->postJson("/api/p2p/trades/{$trade->id}/pay", [
+        'payment_proof' => $proof,
+    ]);
+
+    $response->assertStatus(200);
+    $trade->refresh();
+    expect($trade->status)->toBe(TradeStatus::PAID);
+    expect($trade->payment_proof)->not->toBeNull();
+
+    $path = str_replace(Storage::disk('public')->url(''), '', $trade->payment_proof);
+    Storage::disk('public')->assertExists(ltrim($path, '/'));
+});
+
+it('prevents marking a trade as paid without uploading a proof of payment', function () {
+    $ad = P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+    ]);
+
+    $trade = P2PTrade::factory()->create([
+        'advertisement_id' => $ad->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'status' => TradeStatus::PENDING,
+    ]);
+
+    $response = actingAs($this->buyer)->postJson("/api/p2p/trades/{$trade->id}/pay", []);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['payment_proof']);
+
+    $trade->refresh();
+    expect($trade->status)->toBe(TradeStatus::PENDING);
 });

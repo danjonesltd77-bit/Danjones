@@ -26,6 +26,7 @@ class P2PTrade extends Model
         'status',
         'disputed_by',
         'dispute_reason',
+        'payment_proof',
     ];
 
     protected function casts(): array

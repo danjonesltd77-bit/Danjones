@@ -14,9 +14,11 @@ use App\Domains\P2P\Models\P2PTrade;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\P2P\DisputeTradeRequest;
 use App\Http\Requests\P2P\InitiateTradeRequest;
+use App\Http\Requests\P2P\MarkTradePaidRequest;
 use App\Http\Requests\P2P\StoreAdvertisementRequest;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class P2PController extends Controller
 {
@@ -88,10 +90,13 @@ class P2PController extends Controller
         }
     }
 
-    public function markTradePaid(Request $request, P2PTrade $trade, MarkTradePaidAction $action)
+    public function markTradePaid(MarkTradePaidRequest $request, P2PTrade $trade, MarkTradePaidAction $action)
     {
         try {
-            $trade = $action->execute($request->user(), $trade);
+            $path = $request->file('payment_proof')->store('p2p_proofs', 'public');
+            $paymentProofUrl = Storage::disk('public')->url($path);
+
+            $trade = $action->execute($request->user(), $trade, $paymentProofUrl);
 
             return ApiResponse::success(['message' => 'Trade marked as paid', 'data' => $trade]);
         } catch (\Exception $e) {
