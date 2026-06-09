@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/transaction-pin', [AuthController::class, 'setTransactionPin']);
     Route::post('/update-transaction-pin', [AuthController::class, 'updateTransactionPin']);
+    Route::post('/verify-transaction-pin', [AuthController::class, 'verifyTransactionPin']);
 
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('/resend-otp', [AuthController::class, 'resendOtp']);

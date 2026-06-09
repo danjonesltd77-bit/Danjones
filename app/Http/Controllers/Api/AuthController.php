@@ -103,6 +103,18 @@ class AuthController extends Controller
         ]);
     }
 
+    public function verifyTransactionPin(Request $request)
+    {
+        $request->validate([
+            'pin' => ['required', 'string', 'size:4', new \App\Rules\MatchTransactionPin],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction PIN matches.',
+        ]);
+    }
+
     public function updateTransactionPin(
         UpdateTransactionPinRequest $request,
         UpdateTransactionPinAction $action
