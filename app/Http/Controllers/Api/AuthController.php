@@ -7,15 +7,20 @@ use App\Domains\User\Actions\RegisterUserAction;
 use App\Domains\User\Actions\SetTransactionPinAction;
 use App\Domains\User\Actions\UpdateTransactionPinAction;
 use App\Domains\User\Actions\VerifyOtpAction;
+use App\Domains\User\Notifications\ForgotPasswordOtpNotification;
 use App\Domains\Wallet\Actions\CreateDefaultWalletsAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ForgotPasswordRequest;
 use App\Http\Requests\Api\RegisterRequest;
+use App\Http\Requests\Api\ResetPasswordRequest;
 use App\Http\Requests\Api\SetTransactionPinRequest;
 use App\Http\Requests\Api\UpdateTransactionPinRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -134,6 +139,60 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Verification code sent to your email.',
+        ]);
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        $user = User::where('email', $request->email)->first();
+
+        if ($user) {
+            $otp = (string) rand(100000, 999999);
+            $user->update([
+                'otp' => $otp,
+                'otp_expires_at' => now()->addMinutes(10),
+            ]);
+
+            $user->notify(new ForgotPasswordOtpNotification($otp));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset OTP has been sent to your email.',
+        ]);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        $user = User::where('email', $request->email)->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['User not found.'],
+            ]);
+        }
+
+        if ($user->otp !== $request->otp) {
+            throw ValidationException::withMessages([
+                'otp' => ['The provided OTP is incorrect.'],
+            ]);
+        }
+
+        if ($user->otp_expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'otp' => ['The OTP has expired.'],
+            ]);
+        }
+
+        $user->update([
+            'password' => $request->password,
+            'otp' => null,
+            'otp_expires_at' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password has been reset successfully.',
         ]);
     }
 }
