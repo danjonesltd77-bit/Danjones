@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Roles;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Spatie\Permission\Models\Permission;
@@ -14,7 +15,9 @@ class RolesPermissionsManagement extends Component
 
     // Role state
     public $roleName = '';
+
     public $selectedRole;
+
     public $selectedPermissions = [];
 
     // Permission state
@@ -22,12 +25,14 @@ class RolesPermissionsManagement extends Component
 
     // User Assignment state
     public $searchUser = '';
+
     public $selectedUser;
+
     public $userRoles = [];
 
     public function mount()
     {
-        //
+        Gate::authorize('manage roles');
     }
 
     #[Computed]
@@ -43,14 +48,24 @@ class RolesPermissionsManagement extends Component
     }
 
     #[Computed]
+    public function selectedRoleUsers()
+    {
+        if (! $this->selectedRole) {
+            return [];
+        }
+
+        return $this->selectedRole->users;
+    }
+
+    #[Computed]
     public function users()
     {
         if (strlen($this->searchUser) < 2) {
             return [];
         }
 
-        return User::where('name', 'like', '%' . $this->searchUser . '%')
-            ->orWhere('email', 'like', '%' . $this->searchUser . '%')
+        return User::where('name', 'like', '%'.$this->searchUser.'%')
+            ->orWhere('email', 'like', '%'.$this->searchUser.'%')
             ->limit(10)
             ->get();
     }
@@ -63,6 +78,8 @@ class RolesPermissionsManagement extends Component
     // Role methods
     public function createRole()
     {
+        Gate::authorize('manage roles');
+
         $this->validate([
             'roleName' => 'required|min:3|unique:roles,name',
         ]);
@@ -73,12 +90,16 @@ class RolesPermissionsManagement extends Component
 
     public function editRolePermissions($roleId)
     {
+        Gate::authorize('manage roles');
+
         $this->selectedRole = Role::findById($roleId);
         $this->selectedPermissions = $this->selectedRole->permissions->pluck('name')->toArray();
     }
 
     public function saveRolePermissions()
     {
+        Gate::authorize('manage roles');
+
         if ($this->selectedRole) {
             $this->selectedRole->syncPermissions($this->selectedPermissions);
             $this->selectedRole = null;
@@ -88,12 +109,26 @@ class RolesPermissionsManagement extends Component
 
     public function deleteRole($roleId)
     {
+        Gate::authorize('manage roles');
+
         Role::findById($roleId)->delete();
+    }
+
+    public function removeUserFromRole($userId)
+    {
+        Gate::authorize('manage roles');
+
+        $user = User::find($userId);
+        if ($user && $this->selectedRole) {
+            $user->removeRole($this->selectedRole->name);
+        }
     }
 
     // Permission methods
     public function createPermission()
     {
+        Gate::authorize('manage roles');
+
         $this->validate([
             'permissionName' => 'required|min:3|unique:permissions,name',
         ]);
@@ -104,12 +139,16 @@ class RolesPermissionsManagement extends Component
 
     public function deletePermission($permissionId)
     {
+        Gate::authorize('manage roles');
+
         Permission::findById($permissionId)->delete();
     }
 
     // User Assignment methods
     public function selectUser($userId)
     {
+        Gate::authorize('manage roles');
+
         $this->selectedUser = User::find($userId);
         if ($this->selectedUser) {
             $this->userRoles = $this->selectedUser->roles->pluck('name')->toArray();
@@ -118,6 +157,8 @@ class RolesPermissionsManagement extends Component
 
     public function saveUserRoles()
     {
+        Gate::authorize('manage roles');
+
         if ($this->selectedUser) {
             $this->selectedUser->syncRoles($this->userRoles);
             $this->selectedUser = null;
@@ -132,4 +173,3 @@ class RolesPermissionsManagement extends Component
             ->layout('layouts.app');
     }
 }
-

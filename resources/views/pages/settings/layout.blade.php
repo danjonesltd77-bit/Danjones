@@ -16,20 +16,6 @@
                     <i data-lucide="shield-check" class="w-4 h-4 mr-3 stroke-[1.5] {{ request()->routeIs('user-password.edit') ? '' : 'group-hover:text-primary' }}"></i>
                     <span class="text-xs font-medium uppercase tracking-wider">{{ __('Security') }}</span>
                 </a>
-
-                @if (Laravel\Fortify\Features::canManageTwoFactorAuthentication())
-                    <a href="{{ route('two-factor.show') }}" wire:navigate 
-                        class="flex items-center px-4 py-3 rounded-lg transition-all group {{ request()->routeIs('two-factor.show') ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-darkmode-400/50 hover:text-primary' }}">
-                        <i data-lucide="key" class="w-4 h-4 mr-3 stroke-[1.5] {{ request()->routeIs('two-factor.show') ? '' : 'group-hover:text-primary' }}"></i>
-                        <span class="text-xs font-medium uppercase tracking-wider">{{ __('Two-Factor') }}</span>
-                    </a>
-                @endif
-
-                <a href="{{ route('appearance.edit') }}" wire:navigate 
-                    class="flex items-center px-4 py-3 rounded-lg transition-all group {{ request()->routeIs('appearance.edit') ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-darkmode-400/50 hover:text-primary' }}">
-                    <i data-lucide="palette" class="w-4 h-4 mr-3 stroke-[1.5] {{ request()->routeIs('appearance.edit') ? '' : 'group-hover:text-primary' }}"></i>
-                    <span class="text-xs font-medium uppercase tracking-wider">{{ __('Appearance') }}</span>
-                </a>
             </nav>
         </div>
     </div>

@@ -20,7 +20,6 @@
         class="scrollable-ref w-full h-full z-20 px-5 overflow-y-auto overflow-x-hidden pb-3 [-webkit-mask-image:-webkit-linear-gradient(top,rgba(0,0,0,0),black_30px)] [&:-webkit-scrollbar]:w-0 [&:-webkit-scrollbar]:bg-transparent [&_.simplebar-content]:p-0 [&_.simplebar-track.simplebar-vertical]:w-[10px] [&_.simplebar-track.simplebar-vertical]:mr-0.5 [&_.simplebar-track.simplebar-vertical_.simplebar-scrollbar]:before:bg-slate-400/30">
         <ul class="scrollable">
             <!-- BEGIN: First Child -->
-            @can('manage dashboard')
                 <li class="side-menu__divider">
                     DASHBOARD
                 </li>
@@ -32,7 +31,6 @@
                         <div class="side-menu__link__title">Overview</div>
                     </a>
                 </li>
-            @endcan
 
             @can('manage wallets')
                 <li class="side-menu__divider">
@@ -133,14 +131,6 @@
                     <i data-tw-merge="" data-lucide="lock"
                         class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
                     <div class="side-menu__link__title">Security</div>
-                </a>
-            </li>
-            <li>
-                <a wire:navigate href="{{ route('two-factor.show') }}"
-                    class="side-menu__link {{ request()->routeIs('two-factor.show') ? 'side-menu__link--active' : '' }}">
-                    <i data-tw-merge="" data-lucide="fingerprint"
-                        class="stroke-[1] w-5 h-5 side-menu__link__icon dark:stroke-slate-400!"></i>
-                    <div class="side-menu__link__title">Two-factor Auth</div>
                 </a>
             </li>
 
