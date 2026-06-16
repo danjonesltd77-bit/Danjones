@@ -118,8 +118,8 @@ test('authenticated users can successfully delete their account with correct pas
             'message' => 'Your account has been successfully deleted.',
         ]);
 
-    // Assert user is deleted
-    $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    // Assert user is soft deleted
+    $this->assertSoftDeleted($user);
 
     // Assert wallets are deleted
     $this->assertDatabaseMissing('wallets', ['user_id' => $user->id]);

@@ -266,15 +266,6 @@ class AuthController extends Controller
                 }
             }
 
-            // Delete user's notifications
-            // $user->notifications()->delete();
-
-            // Delete user's transactions
-            // Transaction::where('user_id', $user->id)->delete();
-
-            // Delete user's wallets
-            // $user->wallets()->delete();
-
             // Revoke all tokens
             $user->tokens()->delete();
 
