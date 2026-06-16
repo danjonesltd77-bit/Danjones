@@ -9,7 +9,9 @@ use App\Domains\User\Actions\UpdateTransactionPinAction;
 use App\Domains\User\Actions\VerifyOtpAction;
 use App\Domains\User\Notifications\ForgotPasswordOtpNotification;
 use App\Domains\Wallet\Actions\CreateDefaultWalletsAction;
+use App\Domains\Wallet\Models\Transaction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\ForgotPasswordRequest;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Requests\Api\ResetPasswordRequest;
@@ -21,6 +23,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -240,6 +243,48 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Profile updated successfully.',
             'user' => new UserResource($user),
+        ]);
+    }
+
+    public function deleteAccount(DeleteAccountRequest $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+
+        if (! Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => ['The provided password is incorrect.'],
+            ]);
+        }
+
+        DB::transaction(function () use ($user) {
+            // Delete local avatar if it exists
+            if ($user->avatar) {
+                $storageUrl = Storage::disk('public')->url('');
+                if (str_starts_with($user->avatar, $storageUrl)) {
+                    $oldPath = str_replace($storageUrl, '', $user->avatar);
+                    Storage::disk('public')->delete(ltrim($oldPath, '/'));
+                }
+            }
+
+            // Delete user's notifications
+            // $user->notifications()->delete();
+
+            // Delete user's transactions
+            // Transaction::where('user_id', $user->id)->delete();
+
+            // Delete user's wallets
+            // $user->wallets()->delete();
+
+            // Revoke all tokens
+            $user->tokens()->delete();
+
+            // Delete the user record
+            $user->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your account has been successfully deleted.',
         ]);
     }
 }
