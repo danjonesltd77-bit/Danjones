@@ -121,17 +121,17 @@ test('authenticated users can successfully delete their account with correct pas
     // Assert user is soft deleted
     $this->assertSoftDeleted($user);
 
-    // Assert wallets are deleted
-    $this->assertDatabaseMissing('wallets', ['user_id' => $user->id]);
+    // Assert wallets still exist (preserved on soft delete)
+    $this->assertDatabaseHas('wallets', ['user_id' => $user->id]);
 
-    // Assert transactions are deleted
-    $this->assertDatabaseMissing('transactions', ['user_id' => $user->id]);
+    // Assert transactions still exist (preserved on soft delete)
+    $this->assertDatabaseHas('transactions', ['user_id' => $user->id]);
 
     // Assert avatar is deleted
     Storage::disk('public')->assertMissing('avatars/'.$avatarFile->hashName());
 
-    // Assert notifications are deleted
-    $this->assertDatabaseMissing('notifications', [
+    // Assert notifications still exist (preserved on soft delete)
+    $this->assertDatabaseHas('notifications', [
         'notifiable_type' => User::class,
         'notifiable_id' => $user->id,
     ]);

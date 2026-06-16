@@ -15,7 +15,7 @@ use App\Livewire\Admin\Users\UsersManagement;
 use App\Livewire\Admin\Users\UserView;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->name('admin.')->prefix('admin')->group(function () {
+Route::middleware(['auth', 'verified', 'admin'])->name('admin.')->prefix('admin')->group(function () {
     Route::get('dashboard', Dashboard::class)->name('dashboard');
 
     Route::prefix('users')->group(function () {

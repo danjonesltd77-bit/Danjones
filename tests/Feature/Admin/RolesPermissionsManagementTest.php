@@ -47,6 +47,22 @@ class RolesPermissionsManagementTest extends TestCase
             ->assertOk();
     }
 
+    public function test_non_admin_gets_403_on_admin_routes_via_middleware(): void
+    {
+        $this->actingAs($this->regularUser);
+
+        $this->get(route('admin.dashboard'))
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_access_admin_routes_via_middleware(): void
+    {
+        $this->actingAs($this->admin);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk();
+    }
+
     public function test_admin_can_create_and_delete_role(): void
     {
         $this->actingAs($this->admin);

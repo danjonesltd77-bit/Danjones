@@ -2,14 +2,16 @@
 
 use App\Livewire\Admin\System\LogViewer;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Livewire\Livewire;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
     $this->user = User::factory()->create();
+    $this->user->assignRole('super-admin');
     $this->user->markEmailAsVerified();
 });
 
