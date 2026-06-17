@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', 'index');
         Route::get('/list', 'bankList');
         Route::post('/store', 'store');
+        Route::post('/verify', 'verify');
         Route::get('/delete/{bankAccount}', 'destroy');
     });
 
