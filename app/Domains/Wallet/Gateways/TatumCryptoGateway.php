@@ -513,7 +513,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                     'value' => round($amount, 6),
                 ],
             ],
-            'fee' => (string) $fee,
+            'fee' => number_format($fee, 8, '.', ''),
         ];
 
         if ($changeWallet) {
