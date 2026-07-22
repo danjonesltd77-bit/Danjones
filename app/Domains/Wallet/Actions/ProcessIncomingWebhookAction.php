@@ -51,6 +51,8 @@ class ProcessIncomingWebhookAction
 
         $currencyId = $currency->id;
 
+        Log::info($currencyId);
+
         if (! $txHash || ! $address) {
             Log::warning('Subscription missing required fields', ['payload' => $payload]);
 
@@ -71,13 +73,16 @@ class ProcessIncomingWebhookAction
             return ['success' => false, 'message' => 'Transaction not found or not yet confirmed.'];
         }
 
+        Log::info('Details', [$details]);
+
         // Determine amount and status based on currency
         [$amount, $status] = match ($wallet->currency_id) {
             2 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
             5 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
             3 => [$this->extractTronAmount($details, $wallet->address), 'completed'],
             4 => [$this->extractTrc20Amount($details, $wallet->address), 'completed'],
-            7 => [$this->extractEthereumAmount($details), 'completed'],
+            6 => [$this->extractEvmAmount($details), 'completed'],
+            7 => [$this->extractEvmAmount($details), 'completed'],
             default => [$this->extractGenericAmount($details), 'pending'],
         };
 
@@ -201,22 +206,26 @@ class ProcessIncomingWebhookAction
     }
 
     /**
-     * Extract Ethereum amount from transaction details.
-     * Handles both Tatum's parsed 'amount' and raw 'value' (Wei).
+     * Extract EVM amount (Ethereum / BSC native) from transaction details.
+     * Handles Tatum's parsed 'amount', decimal Wei string, and hex Wei string.
      */
-    private function extractEthereumAmount(array $details): float
+    private function extractEvmAmount(array $details): float
     {
-        // If Tatum already parsed the amount into ETH
+        // If Tatum already parsed the amount
         if (isset($details['amount'])) {
             return (float) $details['amount'];
         }
 
-        // If we have raw 'value' in Wei (standard for Ethereum JSON-RPC responses)
+        // If we have raw 'value' in Wei
         if (isset($details['value'])) {
-            $value = $details['value'];
+            $value = (string) $details['value'];
 
-            // Convert Wei to ETH (18 decimals)
-            // Using bcdiv if available for precision, or standard float division
+            if (str_starts_with(strtolower($value), '0x')) {
+                $wei = hexdec(substr($value, 2));
+
+                return $wei / 1000000000000000000;
+            }
+
             if (is_numeric($value)) {
                 return (float) $value / 1000000000000000000;
             }

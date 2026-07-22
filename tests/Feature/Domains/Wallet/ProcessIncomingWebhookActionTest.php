@@ -101,3 +101,65 @@ test('process incoming webhook action correctly resolves fungible token currency
         return $mail->hasTo($user->email);
     });
 });
+
+test('process incoming webhook action correctly extracts BSC native amount from Wei value', function () {
+    Mail::fake();
+
+    $user = User::factory()->create();
+
+    $bscCurrency = Currency::factory()->create([
+        'id' => 6,
+        'name' => 'BSC',
+        'symbol' => 'BSC',
+        'is_crypto' => true,
+        'is_active' => true,
+        'token_currency' => 'BSC',
+    ]);
+
+    $bscWallet = Wallet::factory()->create([
+        'user_id' => $user->id,
+        'currency_id' => $bscCurrency->id,
+        'address' => '0x599367524d59ffa4d6152ad06a6fa277dd640502',
+        'balance' => 0,
+    ]);
+
+    $cryptoGatewayMock = Mockery::mock(CryptoGatewayInterface::class);
+    $cryptoGatewayMock->shouldReceive('getTransactionDetails')
+        ->once()
+        ->with('0x3fe14a8bbd43889ff9788fb4ce2631b00e5cdad32c470db0c247a6c9156771ba', Mockery::on(fn ($c) => $c->id === $bscCurrency->id))
+        ->andReturn([
+            'transactionHash' => '0x3fe14a8bbd43889ff9788fb4ce2631b00e5cdad32c470db0c247a6c9156771ba',
+            'blockNumber' => 111431313,
+            'from' => '0x318d2aae4c99c2e74f7b5949fa1c34df837789b8',
+            'to' => '0x599367524d59ffa4d6152ad06a6fa277dd640502',
+            'value' => '8496290000000000',
+            'status' => true,
+        ]);
+
+    $marketDataGatewayMock = Mockery::mock(MarketDataGatewayInterface::class);
+    $marketDataGatewayMock->shouldReceive('getExchangeRate')
+        ->once()
+        ->with($bscCurrency->id)
+        ->andReturn(600.0);
+
+    $action = new ProcessIncomingWebhookAction($cryptoGatewayMock, $marketDataGatewayMock);
+
+    $payload = [
+        'address' => '0x599367524d59ffa4d6152ad06a6fa277dd640502',
+        'currency' => 'BSC',
+        'txId' => '0x3fe14a8bbd43889ff9788fb4ce2631b00e5cdad32c470db0c247a6c9156771ba',
+    ];
+
+    $result = $action->execute($payload);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['amount'])->toBe(0.00849629);
+
+    $this->assertDatabaseHas('transactions', [
+        'user_id' => $user->id,
+        'currency_id' => $bscCurrency->id,
+        'reference' => '0x3fe14a8bbd43889ff9788fb4ce2631b00e5cdad32c470db0c247a6c9156771ba',
+        'action' => 'deposit',
+        'status' => 'completed',
+    ]);
+});
