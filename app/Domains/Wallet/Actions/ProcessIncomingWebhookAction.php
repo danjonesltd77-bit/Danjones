@@ -26,8 +26,6 @@ class ProcessIncomingWebhookAction
      */
     public function execute(array $payload): array
     {
-        Log::info('Incoming subscription payload', ['payload' => $payload]);
-
         $txHash = $payload['hash'] ?? $payload['txId'] ?? null;
         $address = $payload['address'] ?? $payload['to'] ?? null;
 
@@ -36,6 +34,8 @@ class ProcessIncomingWebhookAction
         if (isset($payload['tokenMetadata']) && isset($payload['contractAddress']) && $payload['tokenMetadata']['type'] === 'fungible') {
             $currencyId = Currency::where('token_address', $payload['contractAddress'])->first()->id;
         }
+
+        Log::info('currency id', [$currencyId]);
 
         if (! $txHash || ! $address) {
             Log::warning('Subscription missing required fields', ['payload' => $payload]);
