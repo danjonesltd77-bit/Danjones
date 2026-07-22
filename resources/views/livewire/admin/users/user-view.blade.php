@@ -72,8 +72,16 @@
                             <div class="mt-auto pt-4 overflow-hidden">
                                 <div class="text-[10px] text-slate-400 uppercase font-bold mb-1">Wallet Address</div>
                                 <div class="flex items-center bg-slate-50 dark:bg-darkmode-400 p-2 rounded border border-dashed border-slate-300/50 dark:border-darkmode-400">
-                                    <code class="text-[11px] text-slate-600 dark:text-slate-400 break-all flex-1 truncate mr-2" id="wallet-{{ $wallet->id }}">
-                                        {{ $wallet->address ?: 'Processing...' }}
+                                    <code class="text-[11px] font-mono text-slate-600 dark:text-slate-400 flex-1 truncate mr-2" id="wallet-{{ $wallet->id }}" title="{{ $wallet->address }}">
+                                        @if($wallet->address)
+                                            @if(strlen($wallet->address) > 16)
+                                                {{ substr($wallet->address, 0, 8) }}...{{ substr($wallet->address, -8) }}
+                                            @else
+                                                {{ $wallet->address }}
+                                            @endif
+                                        @else
+                                            Processing...
+                                        @endif
                                     </code>
                                     @if($wallet->address)
                                         <button 

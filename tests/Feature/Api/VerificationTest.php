@@ -2,9 +2,11 @@
 
 use App\Domains\Kyc\Models\UserVerification;
 use App\Domains\Kyc\Models\Verification;
+use App\Mail\Kyc\NinVerifiedMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 
 use function Pest\Laravel\actingAs;
 
@@ -18,7 +20,7 @@ beforeEach(function () {
     config(['services.qoreid.secret' => 'test_secret']);
 });
 
-it('can list verification types', function () {
+it('can list verification types and user verifications', function () {
     /** @var User $user */
     $user = User::factory()->create();
 
@@ -26,10 +28,16 @@ it('can list verification types', function () {
 
     $response->assertStatus(200)
         ->assertJsonCount(1, 'data')
+        ->assertJsonStructure([
+            'data',
+            'user_verifications',
+        ])
         ->assertJsonFragment(['name' => 'NIN']);
 });
 
 it('can successfully verify NIN with mocked QoreID response', function () {
+    Mail::fake();
+
     /** @var User $user */
     $user = User::factory()->create();
 
@@ -67,6 +75,10 @@ it('can successfully verify NIN with mocked QoreID response', function () {
         'id' => $user->id,
         'name' => 'John Quincy Doe',
     ]);
+
+    Mail::assertQueued(NinVerifiedMail::class, function ($mail) use ($user) {
+        return $mail->hasTo($user->email) && $mail->status === 'approved';
+    });
 });
 
 it('handles failed NIN verification from QoreID', function () {

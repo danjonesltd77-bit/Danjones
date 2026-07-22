@@ -4,7 +4,6 @@ namespace App\Livewire\Admin\Components;
 
 use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\Transaction;
-use App\Enum\TransactionStatus;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -14,8 +13,10 @@ class TransactionsTable extends Component
 {
     use WithPagination;
 
-    public int $limit = 15;
+    public int $limit = 25;
+
     public bool $paginated = false;
+
     public bool $showSearch = false;
 
     #[Url]
@@ -56,16 +57,16 @@ class TransactionsTable extends Component
             ->with(['user', 'currency'])
             ->when($this->search, function ($q) {
                 $q->where(function ($sq) {
-                    $sq->where('amount', 'like', '%' . $this->search . '%')
-                        ->orWhere('reference', 'like', '%' . $this->search . '%')
-                        ->orWhere('description', 'like', '%' . $this->search . '%')
-                        ->orWhereHas('user', fn($u) => $u->where('name', 'like', '%' . $this->search . '%'));
+                    $sq->where('amount', 'like', '%'.$this->search.'%')
+                        ->orWhere('reference', 'like', '%'.$this->search.'%')
+                        ->orWhere('description', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$this->search.'%'));
                 });
             })
-            ->when($this->currencyId, fn($q) => $q->where('currency_id', $this->currencyId))
-            ->when($this->status, fn($q) => $q->where('status', $this->status))
-            ->when($this->type, fn($q) => $q->where('action', $this->type))
-            ->when($this->performer, function($q) {
+            ->when($this->currencyId, fn ($q) => $q->where('currency_id', $this->currencyId))
+            ->when($this->status, fn ($q) => $q->where('status', $this->status))
+            ->when($this->type, fn ($q) => $q->where('action', $this->type))
+            ->when($this->performer, function ($q) {
                 if ($this->performer === 'user') {
                     return $q->where('user_id', '>', 0);
                 }
@@ -73,8 +74,8 @@ class TransactionsTable extends Component
                     return $q->where('user_id', 0);
                 }
             })
-            ->when($this->startDate, fn($q) => $q->whereDate('created_at', '>=', $this->startDate))
-            ->when($this->endDate, fn($q) => $q->whereDate('created_at', '<=', $this->endDate))
+            ->when($this->startDate, fn ($q) => $q->whereDate('created_at', '>=', $this->startDate))
+            ->when($this->endDate, fn ($q) => $q->whereDate('created_at', '<=', $this->endDate))
             ->latest();
 
         if ($this->paginated) {

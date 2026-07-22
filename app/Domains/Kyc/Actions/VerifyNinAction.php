@@ -5,7 +5,9 @@ namespace App\Domains\Kyc\Actions;
 use App\Domains\Kyc\Models\UserVerification;
 use App\Domains\Kyc\Models\Verification;
 use App\Domains\Kyc\Services\QoreIdService;
+use App\Mail\Kyc\NinVerifiedMail;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 
 class VerifyNinAction
 {
@@ -92,7 +94,13 @@ class VerifyNinAction
             ? 'Your NIN verification was successful.'
             : 'Your NIN verification was rejected. '.($result['message'] ?? '');
 
-        send_notification($user, $title, $msg, 'kyc_verification', ['status' => $status, 'type' => 'NIN']);
+        if (function_exists('send_notification')) {
+            send_notification($user, $title, $msg, 'kyc_verification', ['status' => $status, 'type' => 'NIN']);
+        }
+
+        if ($user->email) {
+            Mail::to($user->email)->queue(new NinVerifiedMail($user, $status, $result['message'] ?? null));
+        }
 
         return $result;
     }

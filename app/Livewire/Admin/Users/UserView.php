@@ -169,7 +169,7 @@ class UserView extends Component
             ->when($this->startDate, fn ($q) => $q->whereDate('created_at', '>=', $this->startDate))
             ->when($this->endDate, fn ($q) => $q->whereDate('created_at', '<=', $this->endDate))
             ->latest()
-            ->paginate(10);
+            ->paginate(25);
     }
 
     #[Computed]
