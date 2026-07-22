@@ -7,9 +7,11 @@ use App\Domains\Wallet\Models\Currency;
 use App\Domains\Wallet\Models\Transaction;
 use App\Domains\Wallet\Services\FlutterwaveService;
 use App\Domains\Wallet\Services\LedgerService;
+use App\Mail\Wallet\DepositReceivedMail;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class VerifyFlutterwaveDepositAction
 {
@@ -83,6 +85,10 @@ class VerifyFlutterwaveDepositAction
             $transaction = Transaction::where('reference', $reference)
                 ->where('wallet_id', $wallet->id)
                 ->first();
+
+            if ($transaction) {
+                Mail::to($user->email)->queue(new DepositReceivedMail($transaction));
+            }
 
             send_notification($user, 'Deposit Received', 'Your deposit of '.crypto_format($amount).' NGN was successful.', 'deposit_received', ['transaction_id' => $transaction?->id, 'amount' => $amount, 'currency' => 'NGN']);
 

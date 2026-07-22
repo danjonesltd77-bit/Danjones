@@ -29,13 +29,27 @@ class ProcessIncomingWebhookAction
         $txHash = $payload['hash'] ?? $payload['txId'] ?? null;
         $address = $payload['address'] ?? $payload['to'] ?? null;
 
-        $currencyId = Currency::where('token_currency', $payload['currency'])->first()->id;
+        $currency = null;
 
-        if (isset($payload['tokenMetadata']) && isset($payload['contractAddress']) && $payload['tokenMetadata']['type'] === 'fungible') {
-            $currencyId = Currency::where('token_address', $payload['contractAddress'])->first()->id;
+        if (! empty($payload['contractAddress'])) {
+            $currency = Currency::where('token_address', $payload['contractAddress'])
+                ->orWhere('token_currency', $payload['contractAddress'])
+                ->first();
         }
 
-        Log::info('currency id', [$currencyId]);
+        if (! $currency && ! empty($payload['currency'])) {
+            $currency = Currency::where('token_currency', $payload['currency'])
+                ->orWhere('token_address', $payload['currency'])
+                ->first();
+        }
+
+        if (! $currency) {
+            Log::warning('Subscription currency not found', ['payload' => $payload]);
+
+            return ['success' => false, 'message' => 'Currency not found.'];
+        }
+
+        $currencyId = $currency->id;
 
         if (! $txHash || ! $address) {
             Log::warning('Subscription missing required fields', ['payload' => $payload]);
@@ -224,32 +238,47 @@ class ProcessIncomingWebhookAction
      */
     private function extractTrc20Amount(array $details, string $address): float
     {
+        $expectedHex = $this->tronAddressToHex($address);
+
+        // 1. Check transaction event logs
         $logs = $details['log'] ?? [];
         $transferTopic = 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
-        // Convert the Base58 address to its core hex representation for comparison
-        $expectedHex = $this->tronAddressToHex($address);
-
         foreach ($logs as $log) {
             $topics = $log['topics'] ?? [];
-            if (empty($topics) || $topics[0] !== $transferTopic) {
+            if (empty($topics) || strtolower($topics[0]) !== $transferTopic) {
                 continue;
             }
 
             // In TRC20 Transfer(address,address,uint256), the recipient is in topics[2]
-            // It's a 32-byte hex, left-padded with zeros. Core address is the last 40 chars.
-            $recipientHex = isset($topics[2]) ? substr($topics[2], -40) : null;
+            $recipientHex = isset($topics[2]) ? strtolower(substr($topics[2], -40)) : null;
 
-            // Verify that the recipient in the log matches our wallet address
-            if ($recipientHex !== $expectedHex) {
+            if ($expectedHex && $recipientHex !== strtolower($expectedHex)) {
                 continue;
             }
 
             $data = $log['data'] ?? '0';
             $rawAmount = hexdec(ltrim($data, '0'));
 
-            // USDT usually has 6 decimals
             return $rawAmount / 1000000;
+        }
+
+        // 2. Fallback to rawData contract input parameters if logs are absent/unparsed
+        $contracts = $details['rawData']['contract'] ?? [];
+        foreach ($contracts as $contract) {
+            $value = $contract['parameter']['value'] ?? [];
+            $data = $value['data'] ?? '';
+
+            // Check for transfer(address,uint256) signature: a9059cbb
+            if (str_starts_with(strtolower($data), 'a9059cbb') && strlen($data) >= 136) {
+                $recipientHex = strtolower(substr($data, 32, 40));
+                if (! $expectedHex || $recipientHex === strtolower($expectedHex)) {
+                    $rawAmountHex = substr($data, 72, 64);
+                    $rawAmount = hexdec(ltrim($rawAmountHex, '0'));
+
+                    return $rawAmount / 1000000;
+                }
+            }
         }
 
         return 0.0;
@@ -277,13 +306,10 @@ class ProcessIncomingWebhookAction
                 $hex = '0'.$hex;
             }
 
-            // A full decoded TRON address is 25 bytes (50 hex chars):
-            // 1 byte version (0x41) + 20 bytes address + 4 bytes checksum
             $hex = str_pad($hex, 50, '0', STR_PAD_LEFT);
 
-            // Return only the 20-byte address part (skip version and skip checksum)
             return substr($hex, 2, 40);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }
