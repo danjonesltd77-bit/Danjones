@@ -83,7 +83,8 @@ class CompleteTradeAction
 
             // If it's a gaspump currency, we need to move the crypto on-chain
             if ($lockedTrade->currency->is_gaspump) {
-                $gasWallet = SystemWallet::where('currency_id', $lockedTrade->currency_id)
+                $gasCurrencyId = $lockedTrade->currency->parent_id ?: $lockedTrade->currency_id;
+                $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
                     ->where('type', SystemWalletType::GAS)
                     ->firstOrFail();
 

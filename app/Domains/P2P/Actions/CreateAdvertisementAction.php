@@ -34,7 +34,8 @@ class CreateAdvertisementAction
 
         // Activation for gaspump currencies
         if ($wallet->currency->is_gaspump) {
-            $gasWallet = SystemWallet::where('currency_id', $wallet->currency_id)
+            $gasCurrencyId = $wallet->currency->parent_id ?: $wallet->currency_id;
+            $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
                 ->where('type', SystemWalletType::GAS)
                 ->firstOrFail();
 

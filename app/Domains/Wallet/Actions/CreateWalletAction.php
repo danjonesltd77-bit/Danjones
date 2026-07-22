@@ -57,7 +57,8 @@ class CreateWalletAction
         $gasWallet = null;
         $chain = $currency->token_currency;
         if ($currency->is_gaspump) {
-            $gasWallet = SystemWallet::where('currency_id', $currencyId)
+            $gasCurrencyId = $currency->parent_id ?: $currencyId;
+            $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
                 ->where('type', SystemWalletType::GAS)
                 ->first();
         }

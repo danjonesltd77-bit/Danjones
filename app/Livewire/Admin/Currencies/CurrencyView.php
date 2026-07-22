@@ -207,7 +207,16 @@ class CurrencyView extends Component
     #[Computed]
     public function systemWallets()
     {
-        return SystemWallet::where('currency_id', $this->currency->id)->get();
+        $query = SystemWallet::where('currency_id', $this->currency->id);
+
+        if ($this->currency->parent_id) {
+            $query->orWhere(function ($q) {
+                $q->where('currency_id', $this->currency->parent_id)
+                    ->where('type', \App\Enum\SystemWalletType::GAS);
+            });
+        }
+
+        return $query->get();
     }
 
     /**

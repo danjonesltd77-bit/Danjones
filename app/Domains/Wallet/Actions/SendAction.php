@@ -125,7 +125,9 @@ class SendAction
     {
         $gaspump = app(GaspumpServiceInterface::class);
 
-        $gasWallet = SystemWallet::where('currency_id', $currency->id)
+        $gasCurrencyId = $currency->parent_id ?: $currency->id;
+
+        $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
             ->where('type', SystemWalletType::GAS)
             ->first();
 

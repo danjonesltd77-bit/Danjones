@@ -109,8 +109,10 @@ class AdminSendAction
     {
         $gaspump = app(GaspumpServiceInterface::class);
 
+        $gasCurrencyId = $currency->parent_id ?: $currency->id;
+
         // For Gaspump, we need a Gas wallet to pay for the transfer if it's not the gas wallet itself.
-        $gasWallet = SystemWallet::where('currency_id', $currency->id)
+        $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
             ->where('type', \App\Enum\SystemWalletType::GAS)
             ->first();
 

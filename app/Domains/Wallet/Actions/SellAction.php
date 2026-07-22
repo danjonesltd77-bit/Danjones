@@ -64,7 +64,8 @@ class SellAction
 
         // If it's a gaspump currency, we need to move the crypto on-chain
         if ($cryptoWallet->currency->is_gaspump) {
-            $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)
+            $gasCurrencyId = $cryptoWallet->currency->parent_id ?: $cryptoWallet->currency_id;
+            $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
                 ->where('type', SystemWalletType::GAS)
                 ->first();
 
@@ -106,7 +107,8 @@ class SellAction
             // but we need the variable within this scope for gaspump transfers.
             $gasWallet = null;
             if ($cryptoWallet->currency->is_gaspump) {
-                $gasWallet = SystemWallet::where('currency_id', $cryptoWallet->currency_id)->where('type', SystemWalletType::GAS)->first();
+                $gasCurrencyId = $cryptoWallet->currency->parent_id ?: $cryptoWallet->currency_id;
+                $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)->where('type', SystemWalletType::GAS)->first();
                 if (! $gasWallet) {
                     throw new Exception("Gas wallet configuration missing for {$cryptoWallet->currency->symbol}.", 500);
                 }
