@@ -73,8 +73,6 @@ class ProcessIncomingWebhookAction
             return ['success' => false, 'message' => 'Transaction not found or not yet confirmed.'];
         }
 
-        Log::info('Details', [$details]);
-
         // Determine amount and status based on currency
         [$amount, $status] = match ($wallet->currency_id) {
             2 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],

@@ -57,9 +57,6 @@ class CurrencyView extends Component
     /**
      * Refresh the blockchain balance for a specific system wallet.
      */
-    /**
-     * Refresh the blockchain balance for a specific system wallet.
-     */
     public function refreshBlockchainBalance(
         int $walletId,
         \App\Domains\Wallet\Contracts\CryptoGatewayInterface $gateway,
@@ -80,27 +77,11 @@ class CurrencyView extends Component
             $blockchainBalance = $gateway->getBalance($wallet->address, $checkCurrency);
             $this->blockchainBalances[$walletId] = $blockchainBalance;
 
-            // Update ledger if there is a discrepancy
-            $ledgerBalance = (float) $wallet->balance;
-            $diff = $blockchainBalance - $ledgerBalance;
-
-            // if (abs($diff) > 0.00000001) {
-            //     $rate = $marketData->getExchangeRate($wallet->currency_id);
-            //     $type = $diff > 0 ? 'credit' : 'debit';
-            //     $amount = abs($diff);
-
-            //     $repository->recordEntry(
-            //         $wallet,
-            //         $amount,
-            //         $amount * $rate,
-            //         $type,
-            //         'transfer',
-            //         'SYNC-'.strtoupper(\Illuminate\Support\Str::random(10)),
-            //         "Blockchain sync: Adjusted balance from {$ledgerBalance} to {$blockchainBalance}",
-            //         ['blockchain_balance' => $blockchainBalance, 'previous_ledger' => $ledgerBalance],
-            //         'completed'
-            //     );
-            // }
+            if ($wallet->type === \App\Enum\SystemWalletType::GAS) {
+                $wallet->update([
+                    'balance' => $blockchainBalance,
+                ]);
+            }
 
             $this->dispatch('toast', message: "Blockchain balance synchronized for {$wallet->type->label()}.", variant: 'success');
         } catch (\Exception $e) {

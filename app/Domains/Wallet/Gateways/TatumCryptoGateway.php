@@ -77,7 +77,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                         break;
 
                     default:
-                        $response = $this->apiClient->get("/{$chain}/address/balance/{$address}", is_gaspump: true);
+                        $response = $this->apiClient->get("/{$chain}/account/balance/{$address}", is_gaspump: true);
                         if ($response->successful()) {
                             return (float) ($response->json()['balance'] ?? 0);
                         }
