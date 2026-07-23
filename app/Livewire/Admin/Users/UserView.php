@@ -126,7 +126,7 @@ class UserView extends Component
                 $usdNgnRate = $marketDataGateway->getUsdNgnRate();
                 $usdAmount = (float) $this->creditAmount / ($usdNgnRate ?: 1);
 
-                $ref = $this->creditReference ?: 'MAN-NGN-CRED-'.strtoupper(Str::random(10));
+                $ref = $this->creditReference ?: 'MAN-NGN-CRED-' . strtoupper(Str::random(10));
 
                 $ledgerService->recordDeposit(
                     null,
@@ -151,7 +151,7 @@ class UserView extends Component
             $this->dispatch('close-modal', id: 'credit-wallet-modal');
             $this->dispatch('toast', message: 'Naira wallet credited successfully!', variant: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('toast', message: 'Failed to credit Naira wallet: '.$e->getMessage(), variant: 'error');
+            $this->dispatch('toast', message: 'Failed to credit Naira wallet: ' . $e->getMessage(), variant: 'error');
         }
     }
 
@@ -181,7 +181,7 @@ class UserView extends Component
                 $this->dispatch('toast', message: "Gaspump wallet for {$wallet->currency->symbol} is NOT activated on Tatum.", variant: 'error');
             }
         } catch (\Exception $e) {
-            $this->dispatch('toast', message: 'Failed to check gaspump status: '.$e->getMessage(), variant: 'error');
+            $this->dispatch('toast', message: 'Failed to check gaspump status: ' . $e->getMessage(), variant: 'error');
         }
     }
 
@@ -216,7 +216,7 @@ class UserView extends Component
 
             $this->dispatch('toast', message: 'Gaspump activation request sent successfully to Tatum!', variant: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('toast', message: 'Failed to activate gaspump wallet: '.$e->getMessage(), variant: 'error');
+            $this->dispatch('toast', message: 'Failed to activate gaspump wallet: ' . $e->getMessage(), variant: 'error');
         }
     }
 
@@ -228,16 +228,16 @@ class UserView extends Component
             ->where('user_id', $this->user->id)
             ->when($this->search, function ($q) {
                 $q->where(function ($sq) {
-                    $sq->where('description', 'like', '%'.$this->search.'%')
-                        ->orWhere('amount', 'like', '%'.$this->search.'%')
-                        ->orWhere('reference', 'like', '%'.$this->search.'%');
+                    $sq->where('description', 'like', '%' . $this->search . '%')
+                        ->orWhere('amount', 'like', '%' . $this->search . '%')
+                        ->orWhere('reference', 'like', '%' . $this->search . '%');
                 });
             })
-            ->when($this->currencyId, fn ($q) => $q->where('currency_id', $this->currencyId))
-            ->when($this->status, fn ($q) => $q->where('status', $this->status))
-            ->when($this->type, fn ($q) => $q->where('action', $this->type))
-            ->when($this->startDate, fn ($q) => $q->whereDate('created_at', '>=', $this->startDate))
-            ->when($this->endDate, fn ($q) => $q->whereDate('created_at', '<=', $this->endDate))
+            ->when($this->currencyId, fn($q) => $q->where('currency_id', $this->currencyId))
+            ->when($this->status, fn($q) => $q->where('status', $this->status))
+            ->when($this->type, fn($q) => $q->where('action', $this->type))
+            ->when($this->startDate, fn($q) => $q->whereDate('created_at', '>=', $this->startDate))
+            ->when($this->endDate, fn($q) => $q->whereDate('created_at', '<=', $this->endDate))
             ->latest()
             ->paginate(25);
     }

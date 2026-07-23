@@ -22,7 +22,8 @@ if (! function_exists('toast')) {
     {
         if (app()->bound('livewire') && app('livewire')->current()) {
             // During a Livewire request, dispatch through the current component
-            app('livewire')->current()->dispatch('toast',
+            app('livewire')->current()->dispatch(
+                'toast',
                 message: $message,
                 type: $type,
             );
