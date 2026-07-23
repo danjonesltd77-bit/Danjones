@@ -12,6 +12,7 @@ use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
+use App\Enum\WalletStatus;
 use App\Mail\Wallet\WithdrawalRequestedMail;
 use App\Models\User;
 use Exception;
@@ -133,6 +134,20 @@ class SendAction
 
         if (! $gasWallet) {
             throw new Exception('Gas wallet not configured for this currency.', 500);
+        }
+
+        if ($wallet->status === WalletStatus::PENDING) {
+            $gaspump->activateAddress(
+                $wallet,
+                $currency,
+                $currency->hdWallet,
+                $gasWallet
+            );
+
+            $wallet->status = WalletStatus::ACTIVE;
+            $wallet->save();
+
+            throw new Exception('Wallet is being activated on Tatum. Please retry the transaction in 5 minutes.', 400);
         }
 
         $txId = $gaspump->gaspumpBatchTransfer(

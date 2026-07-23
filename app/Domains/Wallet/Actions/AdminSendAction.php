@@ -120,6 +120,19 @@ class AdminSendAction
             throw new Exception('Gas wallet not configured for this currency.');
         }
 
+        if ($fromWallet instanceof \App\Domains\Wallet\Models\Wallet && $fromWallet->status === \App\Enum\WalletStatus::PENDING) {
+            $gaspump->activateAddress(
+                $fromWallet,
+                $currency,
+                $currency->hdWallet,
+                $gasWallet
+            );
+            $fromWallet->status = \App\Enum\WalletStatus::ACTIVE;
+            $fromWallet->save();
+
+            throw new Exception('Source wallet is being activated on Tatum. Please retry in 5 minutes.');
+        }
+
         $txId = $gaspump->gaspumpBatchTransfer(
             $fromWallet,
             [$recipientAddress],

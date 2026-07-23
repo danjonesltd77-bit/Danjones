@@ -4,7 +4,6 @@ namespace App\Domains\Kyc\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class QoreIdService
 {
@@ -60,8 +59,6 @@ class QoreIdService
                 'lastname' => $userData['lastname'],
                 'middlename' => $userData['middlename'] ?? null,
             ]);
-
-        Log::info('QoreID Verification Response: '.$response->body());
 
         if ($response->successful() && $response->json('status.status') == 'verified') {
             return [

@@ -10,6 +10,7 @@ use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
 use App\Enum\TradeStatus;
+use App\Enum\WalletStatus;
 use App\Mail\P2P\TradeCompletedMail;
 use App\Models\User;
 use Exception;
@@ -97,8 +98,24 @@ class CompleteTradeAction
                 }
 
                 // For P2P release, we transfer from seller's custodial address to recipients
+                $sellerWallet = $lockedTrade->seller->wallet($lockedTrade->currency_id);
+
+                if ($sellerWallet->status === WalletStatus::PENDING) {
+                    $this->gaspumpService->activateAddress(
+                        $sellerWallet,
+                        $lockedTrade->currency,
+                        $lockedTrade->currency->hdWallet,
+                        $gasWallet
+                    );
+
+                    $sellerWallet->status = WalletStatus::ACTIVE;
+                    $sellerWallet->save();
+
+                    throw new Exception('Seller gaspump wallet is being activated on Tatum. Please retry in 5 minutes.', 400);
+                }
+
                 $this->gaspumpService->gaspumpBatchTransfer(
-                    $lockedTrade->seller->wallet($lockedTrade->currency_id),
+                    $sellerWallet,
                     $recipients,
                     $amounts,
                     $gasWallet,
