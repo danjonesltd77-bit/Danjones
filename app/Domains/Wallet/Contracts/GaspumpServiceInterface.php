@@ -17,4 +17,6 @@ interface GaspumpServiceInterface
     public function gaspumpBatchTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts, SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string;
 
     public function activateAddress(WalletAccountInterface $wallet, Currency $currency, HdWallet $hdWallet, SystemWallet $gasWallet);
+
+    public function isActivated(WalletAccountInterface $wallet, Currency $currency, ?SystemWallet $gasWallet = null): bool;
 }

@@ -104,6 +104,32 @@
                                         Manual Credit
                                     </button>
                                 </div>
+                            @elseif($wallet->currency->is_gaspump)
+                                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-darkmode-400/50 flex items-center justify-between gap-2">
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center">
+                                        <i data-lucide="zap" class="w-3 h-3 text-amber-500 mr-1"></i> Gaspump (Idx: {{ $wallet->index }})
+                                    </span>
+                                    <div class="flex items-center gap-1.5">
+                                        <button 
+                                            wire:click="checkGaspumpStatus({{ $wallet->id }})"
+                                            wire:loading.attr="disabled"
+                                            class="inline-flex items-center gap-x-1 px-2.5 py-1 bg-slate-100 dark:bg-darkmode-400 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider rounded hover:bg-slate-200 dark:hover:bg-darkmode-300 transition-colors"
+                                            title="Check activation status on Tatum">
+                                            <i data-lucide="shield-check" class="w-3 h-3" wire:loading.class="animate-spin" wire:target="checkGaspumpStatus({{ $wallet->id }})"></i>
+                                            Check Tatum Status
+                                        </button>
+                                        @if($wallet->status->value !== 'active')
+                                            <button 
+                                                wire:click="activateGaspumpWallet({{ $wallet->id }})"
+                                                wire:loading.attr="disabled"
+                                                class="inline-flex items-center gap-x-1 px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider rounded hover:bg-primary/20 transition-colors"
+                                                title="Send activation transaction to Tatum">
+                                                <i data-lucide="zap" class="w-3 h-3" wire:loading.class="animate-spin" wire:target="activateGaspumpWallet({{ $wallet->id }})"></i>
+                                                Activate
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
                             @endif
                         </div>
                     @endforeach

@@ -2,10 +2,15 @@
 
 namespace App\Livewire\Admin\Users;
 
+use App\Domains\Wallet\Contracts\GaspumpServiceInterface;
 use App\Domains\Wallet\Contracts\MarketDataGatewayInterface;
 use App\Domains\Wallet\Models\Currency;
+use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Transaction;
+use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
+use App\Enum\SystemWalletType;
+use App\Enum\WalletStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -147,6 +152,71 @@ class UserView extends Component
             $this->dispatch('toast', message: 'Naira wallet credited successfully!', variant: 'success');
         } catch (\Exception $e) {
             $this->dispatch('toast', message: 'Failed to credit Naira wallet: '.$e->getMessage(), variant: 'error');
+        }
+    }
+
+    public function checkGaspumpStatus(int $walletId, GaspumpServiceInterface $gaspumpService): void
+    {
+        Gate::authorize('manage wallets');
+
+        try {
+            $wallet = Wallet::with('currency')->findOrFail($walletId);
+
+            if (! $wallet->currency->is_gaspump) {
+                $this->dispatch('toast', message: "{$wallet->currency->symbol} is not a gaspump currency.", variant: 'warning');
+
+                return;
+            }
+
+            $isActivated = $gaspumpService->isActivated($wallet, $wallet->currency);
+
+            if ($isActivated) {
+                if ($wallet->status === WalletStatus::PENDING) {
+                    $wallet->status = WalletStatus::ACTIVE;
+                    $wallet->save();
+                    $this->user->load('wallets.currency');
+                }
+                $this->dispatch('toast', message: "Gaspump wallet for {$wallet->currency->symbol} is ACTIVATED on Tatum.", variant: 'success');
+            } else {
+                $this->dispatch('toast', message: "Gaspump wallet for {$wallet->currency->symbol} is NOT activated on Tatum.", variant: 'error');
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('toast', message: 'Failed to check gaspump status: '.$e->getMessage(), variant: 'error');
+        }
+    }
+
+    public function activateGaspumpWallet(int $walletId, GaspumpServiceInterface $gaspumpService): void
+    {
+        Gate::authorize('manage wallets');
+
+        try {
+            $wallet = Wallet::with(['currency.parent', 'currency.hdWallet'])->findOrFail($walletId);
+
+            if (! $wallet->currency->is_gaspump) {
+                $this->dispatch('toast', message: "{$wallet->currency->symbol} is not a gaspump currency.", variant: 'warning');
+
+                return;
+            }
+
+            $gasCurrencyId = $wallet->currency->parent_id ?: $wallet->currency_id;
+            $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
+                ->where('type', SystemWalletType::GAS)
+                ->firstOrFail();
+
+            $gaspumpService->activateAddress(
+                $wallet,
+                $wallet->currency,
+                $wallet->currency->hdWallet,
+                $gasWallet
+            );
+
+            $wallet->status = WalletStatus::ACTIVE;
+            $wallet->save();
+            $this->user->load('wallets.currency');
+
+            $this->dispatch('toast', message: 'Gaspump activation request sent successfully to Tatum!', variant: 'success');
+        } catch (\Exception $e) {
+            $this->dispatch('toast', message: 'Failed to activate gaspump wallet: '.$e->getMessage(), variant: 'error');
         }
     }
 

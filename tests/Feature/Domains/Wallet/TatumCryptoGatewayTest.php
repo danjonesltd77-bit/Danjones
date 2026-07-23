@@ -62,3 +62,36 @@ test('utxoSend formats fee as string with 8 decimal places in payload', function
     expect($result)->toBeArray()
         ->and($result['txId'])->toBe('mock-tx-id');
 });
+
+test('isActivated queries Tatum API for gaspump activation status', function () {
+    $currency = Currency::factory()->create([
+        'name' => 'TRON',
+        'symbol' => 'USDT_TRON',
+        'token_currency' => 'TRON',
+        'is_crypto' => true,
+        'is_gaspump' => true,
+    ]);
+
+    $gasWallet = SystemWallet::factory()->create([
+        'currency_id' => $currency->id,
+        'type' => SystemWalletType::GAS,
+        'address' => 'gas-owner-address',
+    ]);
+
+    $wallet = Wallet::factory()->create([
+        'currency_id' => $currency->id,
+        'address' => 'gaspump-user-address',
+        'index' => 5,
+    ]);
+
+    Http::fake([
+        '*/gas-pump/activated/TRON/gas-owner-address/5' => Http::response([
+            'activated' => true,
+        ], 200),
+    ]);
+
+    $gateway = app(\App\Domains\Wallet\Contracts\GaspumpServiceInterface::class);
+    $isActivated = $gateway->isActivated($wallet, $currency);
+
+    expect($isActivated)->toBeTrue();
+});

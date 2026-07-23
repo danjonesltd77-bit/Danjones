@@ -313,6 +313,47 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
     }
 
+    public function isActivated(WalletAccountInterface $wallet, Currency $currency, ?SystemWallet $gasWallet = null): bool
+    {
+        if (! $currency->is_gaspump) {
+            return true;
+        }
+
+        $chain = $currency->token_currency;
+        if ($currency->parent_id != null) {
+            $chain = $currency->parent->token_currency;
+        }
+
+        if (! $gasWallet) {
+            $gasCurrencyId = $currency->parent_id ?: $currency->id;
+            $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
+                ->where('type', SystemWalletType::GAS)
+                ->first();
+        }
+
+        if (! $gasWallet || ! $gasWallet->address) {
+            throw new Exception("Gas wallet configuration missing for currency {$currency->symbol}", 500);
+        }
+
+        $index = (int) $wallet->index;
+        $owner = $gasWallet->address;
+
+        $response = $this->apiClient->get("/gas-pump/activated/{$chain}/{$owner}/{$index}", 'v3', is_gaspump: true);
+
+        if ($response->successful()) {
+            return (bool) ($response->json()['activated'] ?? false);
+        }
+
+        Log::error('Failed to check gaspump activation status from Tatum', [
+            'chain' => $chain,
+            'owner' => $owner,
+            'index' => $index,
+            'response' => $response->json(),
+        ]);
+
+        throw new Exception($response->json()['message'] ?? 'Failed to check gaspump activation status from Tatum.', 500);
+    }
+
     public function gaspumpBatchTransfer(WalletAccountInterface $from, array $recipient_addresses, array $amounts,
         SystemWallet $gasWallet, Currency $currency, HdWallet $hdWallet): string
     {
