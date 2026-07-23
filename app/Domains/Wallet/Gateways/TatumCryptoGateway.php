@@ -300,7 +300,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         }
 
         $response = $this->apiClient->post('/gas-pump/activate', $payload, 'v3', is_gaspump: true);
-        Log::info($response->json());
 
         if (! $response->successful()) {
             Log::error('Failed to activate address', [
