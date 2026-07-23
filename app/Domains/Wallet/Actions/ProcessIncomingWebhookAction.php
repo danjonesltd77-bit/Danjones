@@ -69,14 +69,14 @@ class ProcessIncomingWebhookAction
         $details = $this->cryptoGateway->getTransactionDetails($txHash, $wallet->currency);
 
         // General validity check for all currencies
-        if (! $details || ! ($details['blockNumber'] ?? $details['status'] ?? false)) {
+        if (! $details || ! ($details['blockNumber'] ?? $details['status'] ?? $details['vout'] ?? false)) {
             return ['success' => false, 'message' => 'Transaction not found or not yet confirmed.'];
         }
 
         // Determine amount and status based on currency
         [$amount, $status] = match ($wallet->currency_id) {
             2 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
-            5 => [$this->extractBitcoinAmount($details, $wallet->address), 'pending'],
+            5 => [$this->extractDogeAmount($details, $wallet->address), 'completed'],
             3 => [$this->extractTronAmount($details, $wallet->address), 'completed'],
             4 => [$this->extractTrc20Amount($details, $wallet->address), 'completed'],
             6 => [$this->extractEvmAmount($details), 'completed'],
@@ -157,6 +157,56 @@ class ProcessIncomingWebhookAction
             'amount' => $verifiedAmount,
             'txHash' => $txHash,
         ];
+    }
+
+    /**
+     * Extract Dogecoin amount from UTXO transaction outputs (vout or outputs array).
+     */
+    private function extractDogeAmount(array $details, string $address): float
+    {
+        $totalAmount = 0.0;
+
+        // 1. Check 'vout' outputs array from Dogecoin raw/Tatum transaction
+        $vouts = $details['vout'] ?? [];
+        if (is_array($vouts) && ! empty($vouts)) {
+            foreach ($vouts as $vout) {
+                $value = (float) ($vout['value'] ?? 0);
+                if ($value <= 0) {
+                    continue;
+                }
+
+                $addresses = $vout['scriptPubKey']['addresses'] ?? [];
+                if (is_string($addresses)) {
+                    $addresses = [$addresses];
+                }
+
+                if (is_array($addresses) && in_array($address, $addresses, true)) {
+                    $totalAmount += $value;
+                }
+            }
+
+            if ($totalAmount > 0) {
+                return $totalAmount;
+            }
+        }
+
+        // 2. Fallback to standard Tatum 'outputs' array if normalized
+        $outputs = $details['outputs'] ?? [];
+        if (is_array($outputs) && ! empty($outputs)) {
+            foreach ($outputs as $output) {
+                $value = (float) ($output['value'] ?? 0);
+                if ($value <= 0) {
+                    continue;
+                }
+
+                $outputAddress = $output['address'] ?? null;
+                if ($outputAddress === $address) {
+                    $totalAmount += ($value > 10000000) ? $value / 100000000 : $value;
+                }
+            }
+        }
+
+        return $totalAmount;
     }
 
     /**

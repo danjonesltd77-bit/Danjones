@@ -163,3 +163,84 @@ test('process incoming webhook action correctly extracts BSC native amount from 
         'status' => 'completed',
     ]);
 });
+
+test('process incoming webhook action correctly extracts Dogecoin amount from UTXO vout details', function () {
+    Mail::fake();
+
+    $user = User::factory()->create();
+
+    $dogeCurrency = Currency::factory()->create([
+        'id' => 5,
+        'name' => 'Dogecoin',
+        'symbol' => 'DOGE',
+        'is_crypto' => true,
+        'is_active' => true,
+        'token_currency' => 'DOGE',
+    ]);
+
+    $dogeWallet = Wallet::factory()->create([
+        'user_id' => $user->id,
+        'currency_id' => $dogeCurrency->id,
+        'address' => 'DHfbHWL5XpnAajk2XuEoyC6c6Bhg7o8yvE',
+        'balance' => 0,
+    ]);
+
+    $cryptoGatewayMock = Mockery::mock(CryptoGatewayInterface::class);
+    $cryptoGatewayMock->shouldReceive('getTransactionDetails')
+        ->once()
+        ->with('02f2ae8dce292f7958f656570ddef2a7e4d58ad3564785e968d8c60d24b63e54', Mockery::on(fn ($c) => $c->id === $dogeCurrency->id))
+        ->andReturn([
+            'hash' => '02f2ae8dce292f7958f656570ddef2a7e4d58ad3564785e968d8c60d24b63e54',
+            'size' => 293,
+            'vout' => [
+                [
+                    'value' => 460,
+                    'n' => 0,
+                    'scriptPubKey' => [
+                        'addresses' => ['DRPk2gU64hU6p2sMWBEaraZFnSHKMqs2Vw'],
+                    ],
+                ],
+                [
+                    'value' => 43.66120762,
+                    'n' => 1,
+                    'scriptPubKey' => [
+                        'addresses' => ['DHfbHWL5XpnAajk2XuEoyC6c6Bhg7o8yvE'],
+                    ],
+                ],
+                [
+                    'value' => 30,
+                    'n' => 2,
+                    'scriptPubKey' => [
+                        'addresses' => ['DJ3HGVhSWef3uMBGahp9G2d5SnUsVhySqc'],
+                    ],
+                ],
+            ],
+        ]);
+
+    $marketDataGatewayMock = Mockery::mock(MarketDataGatewayInterface::class);
+    $marketDataGatewayMock->shouldReceive('getExchangeRate')
+        ->once()
+        ->with($dogeCurrency->id)
+        ->andReturn(0.15);
+
+    $action = new ProcessIncomingWebhookAction($cryptoGatewayMock, $marketDataGatewayMock);
+
+    $payload = [
+        'address' => 'DHfbHWL5XpnAajk2XuEoyC6c6Bhg7o8yvE',
+        'currency' => 'DOGE',
+        'txId' => '02f2ae8dce292f7958f656570ddef2a7e4d58ad3564785e968d8c60d24b63e54',
+    ];
+
+    $result = $action->execute($payload);
+
+    expect($result['success'])->toBeTrue()
+        ->and($result['amount'])->toBe(43.66120762);
+
+    $this->assertDatabaseHas('transactions', [
+        'user_id' => $user->id,
+        'currency_id' => $dogeCurrency->id,
+        'reference' => '02f2ae8dce292f7958f656570ddef2a7e4d58ad3564785e968d8c60d24b63e54',
+        'action' => 'deposit',
+        'status' => 'completed',
+    ]);
+});

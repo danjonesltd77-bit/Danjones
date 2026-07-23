@@ -134,9 +134,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         $chain = Str::lower($currency->name);
         if ($currency->parent != null) {
             $chain = Str::lower($currency->parent->name);
-            if ($chain === 'dogecoin') {
-                $chain = 'doge';
-            }
         }
         $response = $this->apiClient->get("/{$chain}/transaction/{$txHash}", is_gaspump: $currency->is_gaspump);
 
