@@ -14,6 +14,7 @@ use App\Domains\Wallet\Models\SystemWallet;
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\TatumApiClient;
 use App\Enum\SystemWalletType;
+use App\Enum\WalletStatus;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -310,6 +311,10 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             throw new Exception('Failed to activate address', 500);
         }
 
+        if ($wallet instanceof Wallet) {
+            $wallet->status = WalletStatus::ACTIVE;
+            $wallet->save();
+        }
     }
 
     public function isActivated(WalletAccountInterface $wallet, Currency $currency, ?SystemWallet $gasWallet = null): bool
