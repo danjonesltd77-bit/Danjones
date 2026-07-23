@@ -75,8 +75,10 @@ class CreateWalletAction
             }
 
             $address = $parentWallet->address;
+            $index = $parentWallet->index;
         } else {
             $address = $this->cryptoGateway->generateAddress($currency, $hdWallet, $chain, $gasWallet);
+            $index = $hdWallet->index;
         }
 
         if (! $address) {
@@ -91,12 +93,14 @@ class CreateWalletAction
         $wallet = $user->wallets()->create([
             'currency_id' => $currencyId,
             'address' => $address,
-            'index' => $hdWallet->index,
+            'index' => $index,
             'status' => $status,
         ]);
 
-        $hdWallet->index += 1;
-        $hdWallet->save();
+        if ($currency->parent_id == null) {
+            $hdWallet->index += 1;
+            $hdWallet->save();
+        }
 
         // Subscribe to incoming transactions if the gateway supports webhooks
         if ($this->cryptoGateway instanceof SupportsWebhooksInterface) {
