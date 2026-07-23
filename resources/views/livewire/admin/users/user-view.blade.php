@@ -66,7 +66,23 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="px-2 py-1 rounded bg-success/10 text-success text-[10px] font-bold uppercase">{{ $wallet->status->value }}</div>
+                                @php
+                                    $statusVal = strtolower($wallet->status->value ?? 'active');
+                                    $statusColor = match($statusVal) {
+                                        'active' => 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400',
+                                        'pending' => 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
+                                        default => 'bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400',
+                                    };
+                                    $dotColor = match($statusVal) {
+                                        'active' => 'bg-emerald-500',
+                                        'pending' => 'bg-amber-500 animate-pulse',
+                                        default => 'bg-rose-500',
+                                    };
+                                @endphp
+                                <div class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border {{ $statusColor }} flex items-center gap-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $dotColor }}"></span>
+                                    {{ $wallet->status->value }}
+                                </div>
                             </div>
 
                             <div class="mt-auto pt-4 overflow-hidden">
@@ -98,34 +114,67 @@
                                 <div class="mt-4 pt-3 border-t border-slate-100 dark:border-darkmode-400/50 flex justify-end">
                                     <button 
                                         @click="$dispatch('open-modal', { id: 'credit-wallet-modal' })"
-                                        class="inline-flex items-center gap-x-1.5 px-3 py-1.5 bg-primary text-white text-[11px] font-bold uppercase tracking-wider rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+                                        class="inline-flex items-center gap-x-1.5 px-3.5 py-1.5 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-700 text-white text-[11px] font-semibold tracking-wider rounded-lg transition-all duration-200 active:scale-95 shadow-sm"
                                     >
-                                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                        </svg>
                                         Manual Credit
                                     </button>
                                 </div>
                             @elseif($wallet->currency->is_gaspump)
-                                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-darkmode-400/50 flex items-center justify-between gap-2">
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center">
-                                        <i data-lucide="zap" class="w-3 h-3 text-amber-500 mr-1"></i> Gaspump (Idx: {{ $wallet->index }})
-                                    </span>
-                                    <div class="flex items-center gap-1.5">
+                                <div class="mt-4 pt-3 border-t border-slate-100 dark:border-darkmode-400/50 flex flex-col gap-2.5">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                Gaspump Index #{{ $wallet->index }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 text-[11px] font-medium">
+                                            <span class="text-slate-400">Tatum Status:</span>
+                                            @if($statusVal === 'active')
+                                                <span class="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activated
+                                                </span>
+                                            @else
+                                                <span class="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pending Activation
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-end gap-2">
                                         <button 
                                             wire:click="checkGaspumpStatus({{ $wallet->id }})"
                                             wire:loading.attr="disabled"
-                                            class="inline-flex items-center gap-x-1 px-2.5 py-1 bg-slate-100 dark:bg-darkmode-400 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider rounded hover:bg-slate-200 dark:hover:bg-darkmode-300 transition-colors"
-                                            title="Check activation status on Tatum">
-                                            <i data-lucide="shield-check" class="w-3 h-3" wire:loading.class="animate-spin" wire:target="checkGaspumpStatus({{ $wallet->id }})"></i>
-                                            Check Tatum Status
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide bg-slate-100 dark:bg-darkmode-400 hover:bg-slate-200 dark:hover:bg-darkmode-300 text-slate-700 dark:text-slate-200 shadow-xs border border-slate-200/80 dark:border-darkmode-400 transition-all duration-200 active:scale-95 disabled:opacity-50 cursor-pointer"
+                                            title="Check activation status on Tatum"
+                                        >
+                                            <svg wire:loading wire:target="checkGaspumpStatus({{ $wallet->id }})" class="animate-spin h-3.5 w-3.5 text-slate-600 dark:text-slate-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <svg wire:loading.remove wire:target="checkGaspumpStatus({{ $wallet->id }})" class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                            </svg>
+                                            <span>Check Tatum Status</span>
                                         </button>
-                                        @if($wallet->status->value !== 'active')
+
+                                        @if($statusVal !== 'active')
                                             <button 
                                                 wire:click="activateGaspumpWallet({{ $wallet->id }})"
                                                 wire:loading.attr="disabled"
-                                                class="inline-flex items-center gap-x-1 px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider rounded hover:bg-primary/20 transition-colors"
-                                                title="Send activation transaction to Tatum">
-                                                <i data-lucide="zap" class="w-3 h-3" wire:loading.class="animate-spin" wire:target="activateGaspumpWallet({{ $wallet->id }})"></i>
-                                                Activate
+                                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-sm hover:shadow transition-all duration-200 active:scale-95 disabled:opacity-50 cursor-pointer"
+                                                title="Send activation transaction to Tatum"
+                                            >
+                                                <svg wire:loading wire:target="activateGaspumpWallet({{ $wallet->id }})" class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                <svg wire:loading.remove wire:target="activateGaspumpWallet({{ $wallet->id }})" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                                </svg>
+                                                <span>Activate Wallet</span>
                                             </button>
                                         @endif
                                     </div>
