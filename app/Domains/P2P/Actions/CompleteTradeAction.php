@@ -7,6 +7,7 @@ use App\Domains\P2P\Models\P2PTrade;
 use App\Domains\Wallet\Actions\CreateWalletAction;
 use App\Domains\Wallet\Contracts\GaspumpServiceInterface;
 use App\Domains\Wallet\Models\SystemWallet;
+use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Services\LedgerService;
 use App\Enum\SystemWalletType;
 use App\Enum\TradeStatus;
@@ -51,6 +52,35 @@ class CompleteTradeAction
             throw new Exception('System escrow wallet not found.', 500);
         }
 
+        // Check if gaspump wallet is pending activation outside the DB transaction to prevent rollback
+        if ($trade->currency->is_gaspump) {
+            $sellerWallet = $trade->seller->wallet($trade->currency_id);
+            if ($sellerWallet && $sellerWallet->status === WalletStatus::PENDING) {
+                $gasCurrencyId = $trade->currency->parent_id ?: $trade->currency_id;
+                $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
+                    ->where('type', SystemWalletType::GAS)
+                    ->first();
+
+                if (! $gasWallet) {
+                    throw new Exception('Gas wallet not configured for this currency.', 500);
+                }
+
+                $this->gaspumpService->activateAddress(
+                    $sellerWallet,
+                    $trade->currency,
+                    $trade->currency->hdWallet,
+                    $gasWallet
+                );
+
+                $sellerWallet->status = WalletStatus::ACTIVE;
+                $sellerWallet->save();
+
+                Wallet::where('address', $sellerWallet->address)->update(['status' => WalletStatus::ACTIVE]);
+
+                throw new Exception('Seller gaspump wallet is being activated on Tatum. Please retry in 5 minutes.', 400);
+            }
+        }
+
         return DB::transaction(function () use ($trade, $escrowWallet) {
             // Re-fetch and lock the trade to ensure it hasn't already been completed
             $lockedTrade = P2PTrade::where('id', $trade->id)->lockForUpdate()->firstOrFail();
@@ -70,7 +100,7 @@ class CompleteTradeAction
                 $buyerWallet = $this->createWalletAction->execute($buyer, $lockedTrade->currency_id);
             }
 
-            $lockedBuyerWallet = \App\Domains\Wallet\Models\Wallet::where('id', $buyerWallet->id)->lockForUpdate()->firstOrFail();
+            $lockedBuyerWallet = Wallet::where('id', $buyerWallet->id)->lockForUpdate()->firstOrFail();
 
             $feePercentage = $this->settingService->get('p2p_fee_percentage', 0);
             $feeAmount = (float) $lockedTrade->crypto_amount * ($feePercentage / 100);
@@ -101,16 +131,6 @@ class CompleteTradeAction
                 $sellerWallet = $lockedTrade->seller->wallet($lockedTrade->currency_id);
 
                 if ($sellerWallet->status === WalletStatus::PENDING) {
-                    $this->gaspumpService->activateAddress(
-                        $sellerWallet,
-                        $lockedTrade->currency,
-                        $lockedTrade->currency->hdWallet,
-                        $gasWallet
-                    );
-
-                    $sellerWallet->status = WalletStatus::ACTIVE;
-                    $sellerWallet->save();
-
                     throw new Exception('Seller gaspump wallet is being activated on Tatum. Please retry in 5 minutes.', 400);
                 }
 

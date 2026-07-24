@@ -270,6 +270,18 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             throw new Exception("Gaspump transfer not supported for non-gaspump currency {$currency->symbol}", 500);
         }
 
+        if ($wallet instanceof Wallet) {
+            $alreadyActive = Wallet::where('address', $wallet->address)
+                ->where('status', WalletStatus::ACTIVE)
+                ->exists();
+
+            if ($alreadyActive) {
+                Wallet::where('address', $wallet->address)->update(['status' => WalletStatus::ACTIVE]);
+
+                return;
+            }
+        }
+
         $chain = $currency->token_currency;
         if ($currency->parent_id != null) {
             $chain = $currency->parent->token_currency;
@@ -309,8 +321,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         }
 
         if ($wallet instanceof Wallet) {
-            $wallet->status = WalletStatus::ACTIVE;
-            $wallet->save();
+            Wallet::where('address', $wallet->address)->update(['status' => WalletStatus::ACTIVE]);
         }
     }
 

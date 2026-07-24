@@ -64,6 +64,33 @@ class SendAction
             throw new Exception('System fee wallet not configured for this currency.', 500);
         }
 
+        // Check if gaspump wallet is pending activation outside the DB transaction to prevent rollback
+        if ($currency->is_gaspump && $wallet->status === WalletStatus::PENDING) {
+            $gaspump = app(GaspumpServiceInterface::class);
+            $gasCurrencyId = $currency->parent_id ?: $currency->id;
+            $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
+                ->where('type', SystemWalletType::GAS)
+                ->first();
+
+            if (! $gasWallet) {
+                throw new Exception('Gas wallet not configured for this currency.', 500);
+            }
+
+            $gaspump->activateAddress(
+                $wallet,
+                $currency,
+                $currency->hdWallet,
+                $gasWallet
+            );
+
+            $wallet->status = WalletStatus::ACTIVE;
+            $wallet->save();
+
+            Wallet::where('address', $wallet->address)->update(['status' => WalletStatus::ACTIVE]);
+
+            throw new Exception('Wallet is being activated on Tatum. Please retry the transaction in 5 minutes.', 400);
+        }
+
         return DB::transaction(function () use ($user, $currency, $wallet, $amount, $recipientAddress, $totalFee, $serviceFee, $networkFee, $feeWallet, $rate) {
             // Re-fetch and lock for update to ensure balance hasn't changed
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->firstOrFail();
@@ -137,16 +164,6 @@ class SendAction
         }
 
         if ($wallet->status === WalletStatus::PENDING) {
-            $gaspump->activateAddress(
-                $wallet,
-                $currency,
-                $currency->hdWallet,
-                $gasWallet
-            );
-
-            $wallet->status = WalletStatus::ACTIVE;
-            $wallet->save();
-
             throw new Exception('Wallet is being activated on Tatum. Please retry the transaction in 5 minutes.', 400);
         }
 
