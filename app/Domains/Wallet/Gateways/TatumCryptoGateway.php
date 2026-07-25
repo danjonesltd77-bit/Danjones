@@ -461,7 +461,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
         switch ($symbol) {
             case 'BTC':
-            case 'DOGE':
                 $response = $this->apiClient->get("/blockchain/fee/{$symbol}", 'v3');
 
                 if (! $response->successful()) {
@@ -474,18 +473,30 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
                 $feeRate = (float) ($response->json()['slow'] ?? 0);
 
-                if ($symbol === 'BTC' || $symbol === 'DOGE') {
-                    // size = (148 * inputs) + (34 * outputs) + 10
-                    $estimatedSize = ($inputCount * 148) + (2 * 34) + 10;
-                    $totalSatoshis = $feeRate * $estimatedSize;
+                // Native SegWit (P2WPKH) size in vBytes:
+                // inputs are ~68 vBytes, outputs are ~31 vBytes, overhead is ~10.5 vBytes
+                $estimatedSize = (int) ceil(($inputCount * 68) + (2 * 31) + 10.5);
+                $totalSatoshis = $feeRate * $estimatedSize;
 
-                    $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
-                    $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+                $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
+                $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
 
-                    return $networkFee + $serviceFee;
-                }
+                return $networkFee + $serviceFee;
 
-                break;
+            case 'DOGE':
+                // Dogecoin uses a safe, static fee rate of 1200 satoshis/byte (~0.012 DOGE/kB),
+                // bypassing the Tatum API to avoid high dynamic estimations and save network calls.
+                $feeRate = 1200.0;
+
+                // Legacy P2PKH size in bytes:
+                // inputs are ~148 bytes, outputs are ~34 bytes, overhead is ~10 bytes
+                $estimatedSize = ($inputCount * 148) + (2 * 34) + 10;
+                $totalSatoshis = $feeRate * $estimatedSize;
+
+                $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
+                $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+
+                return $networkFee + $serviceFee;
 
             default:
                 return (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
