@@ -478,7 +478,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 $estimatedSize = (int) ceil(($inputCount * 68) + (2 * 31) + 10.5);
                 $totalSatoshis = $feeRate * $estimatedSize;
 
-                $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
+                $networkFee = $totalSatoshis / 100000000;
                 $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
 
                 return $networkFee + $serviceFee;
@@ -493,21 +493,9 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 $estimatedSize = ($inputCount * 148) + (2 * 34) + 10;
                 $totalSatoshis = $feeRate * $estimatedSize;
 
-                $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
+                $networkFee = $totalSatoshis / 100000000;
                 // $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
                 $serviceFee = 1;
-
-                Log::info('DOGE Fee Debug', [
-                    'symbol' => $symbol,
-                    'amount' => $amount,
-                    'inputCount' => $inputCount,
-                    'estimatedSize' => $estimatedSize,
-                    'totalSatoshis' => $totalSatoshis,
-                    'decimal' => $currency->decimal,
-                    'networkFee' => $networkFee,
-                    'serviceFee' => $serviceFee,
-                    'total' => $networkFee + $serviceFee,
-                ]);
 
                 return $networkFee + $serviceFee;
 
