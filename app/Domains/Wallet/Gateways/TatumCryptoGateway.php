@@ -456,7 +456,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 }
             }
 
-            $inputCount = max(1, $foundInputs);
+            $inputCount = max(1, min(10, $foundInputs));
         }
 
         switch ($symbol) {
