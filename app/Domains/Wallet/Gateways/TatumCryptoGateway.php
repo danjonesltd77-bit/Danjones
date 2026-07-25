@@ -456,7 +456,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 }
             }
 
-            $inputCount = max(1, min(10, $foundInputs));
+            $inputCount = max(1, $foundInputs);
         }
 
         switch ($symbol) {
@@ -497,10 +497,29 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 // $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
                 $serviceFee = 1;
 
+                Log::info('DOGE Fee Debug', [
+                    'symbol' => $symbol,
+                    'amount' => $amount,
+                    'inputCount' => $inputCount,
+                    'estimatedSize' => $estimatedSize,
+                    'totalSatoshis' => $totalSatoshis,
+                    'decimal' => $currency->decimal,
+                    'networkFee' => $networkFee,
+                    'serviceFee' => $serviceFee,
+                    'total' => $networkFee + $serviceFee,
+                ]);
+
                 return $networkFee + $serviceFee;
 
             default:
-                return (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+                $resultFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+                Log::info('DOGE Fee Debug Default Case', [
+                    'symbol' => $symbol,
+                    'amount' => $amount,
+                    'resultFee' => $resultFee,
+                ]);
+
+                return $resultFee;
         }
 
         return 0;
