@@ -494,7 +494,8 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 $totalSatoshis = $feeRate * $estimatedSize;
 
                 $networkFee = $totalSatoshis / pow(10, (int) $currency->decimal);
-                $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+                // $serviceFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+                $serviceFee = 1;
 
                 return $networkFee + $serviceFee;
 
