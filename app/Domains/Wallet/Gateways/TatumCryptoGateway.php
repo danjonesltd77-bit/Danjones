@@ -37,9 +37,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             // If it's a token (has a parent currency)
             if ($currency->parent_id && $currency->parent_id != $currency->id) {
                 $parentChain = Str::lower($currency->parent->name);
-                if ($parentChain === 'dogecoin') {
-                    $parentChain = 'doge';
-                }
 
                 $response = $this->apiClient->get("/blockchain/token/balance/{$parentChain}/{$currency->token_address}/{$address}", is_gaspump: true);
 
@@ -48,13 +45,10 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 }
             } else {
                 $chain = Str::lower($currency->name);
-                if ($chain === 'dogecoin') {
-                    $chain = 'doge';
-                }
 
                 switch ($chain) {
                     case 'bitcoin':
-                    case 'doge':
+                    case 'dogecoin':
                         $response = $this->apiClient->get("/{$chain}/address/balance/{$address}");
                         if ($response->successful()) {
                             $data = $response->json();

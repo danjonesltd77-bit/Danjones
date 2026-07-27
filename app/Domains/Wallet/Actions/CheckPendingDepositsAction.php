@@ -23,7 +23,7 @@ class CheckPendingDepositsAction
         $pendingDeposits = Transaction::query()
             ->where('status', TransactionStatus::PENDING)
             ->where('action', TransactionAction::DEPOSIT)
-            ->whereIn('currency_id', [2, 3])
+            ->whereIn('currency_id', [2, 5])
             ->where('wallet_type', Wallet::class)
             ->get();
 
