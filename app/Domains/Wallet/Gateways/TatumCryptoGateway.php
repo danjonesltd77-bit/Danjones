@@ -478,9 +478,17 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 return $networkFee + $serviceFee;
 
             case 'DOGE':
-                // Dogecoin uses a safe, static fee rate of 1200 satoshis/byte (~0.012 DOGE/kB),
-                // bypassing the Tatum API to avoid high dynamic estimations and save network calls.
-                $feeRate = 1200.0;
+                $response = $this->apiClient->get("/blockchain/fee/{$symbol}", 'v3');
+
+                if (! $response->successful()) {
+                    Log::error('Tatum fee estimation failed', [
+                        'currency' => $currency->symbol,
+                        'response' => $response->json(),
+                    ]);
+                    throw new \Exception($response->json()['message'] ?? 'Could not estimate transaction fee.', 500);
+                }
+
+                $feeRate = (float) ($response->json()['slow'] ?? 0);
 
                 // Legacy P2PKH size in bytes:
                 // inputs are ~148 bytes, outputs are ~34 bytes, overhead is ~10 bytes
@@ -567,7 +575,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         ])->values()->toArray();
 
         $chain = Str::lower($currency->name);
-        
 
         $payload = [
             'fromAddress' => $formattedWallets,
