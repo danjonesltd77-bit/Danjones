@@ -567,9 +567,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         ])->values()->toArray();
 
         $chain = Str::lower($currency->name);
-        if ($chain === 'dogecoin') {
-            $chain = 'doge';
-        }
+        
 
         $payload = [
             'fromAddress' => $formattedWallets,
