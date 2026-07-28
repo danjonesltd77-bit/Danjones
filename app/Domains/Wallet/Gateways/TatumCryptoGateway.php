@@ -649,9 +649,25 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             if ($response->successful()) {
                 $data = $response->json();
 
-                $gasLimit = isset($data['gasLimit']) ? (float) $data['gasLimit'] : 300000;
+                $gasLimit = isset($data['gasLimit']) ? (float) $data['gasLimit'] : 150000;
+                if ($gasLimit < 150000) {
+                    $gasLimit = 150000;
+                }
+
                 $gasPriceWei = isset($data['gasPrice']) ? (float) $data['gasPrice'] : 20000000000;
                 $gasPriceGwei = $gasPriceWei / (10 ** 9);
+
+                // Enforce a minimum gas price depending on the chain to avoid transactions getting stuck
+                $minGasPriceGwei = 5;
+                if ($chain === 'ETH') {
+                    $minGasPriceGwei = 20;
+                } elseif ($chain === 'BSC') {
+                    $minGasPriceGwei = 3;
+                }
+
+                if ($gasPriceGwei < $minGasPriceGwei) {
+                    $gasPriceGwei = $minGasPriceGwei;
+                }
 
                 if ($isBatch) {
                     $gasLimit = $gasLimit * 2;

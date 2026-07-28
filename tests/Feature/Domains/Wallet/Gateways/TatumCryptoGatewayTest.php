@@ -141,7 +141,7 @@ class TatumCryptoGatewayTest extends TestCase
             ->once()
             ->with('/blockchainOperations/gas', [
                 'chain' => 'ETH',
-                'from' => '0xgas_addr',
+                'from' => '0xfrom_addr',
                 'to' => '0xto_addr',
                 'amount' => '1.0',
             ], 'v4', true)
@@ -220,16 +220,15 @@ class TatumCryptoGatewayTest extends TestCase
             ->once()
             ->with('/blockchainOperations/gas', [
                 'chain' => 'ETH',
-                'from' => '0xgas_addr',
+                'from' => '0xfrom_addr',
                 'to' => '0xto_addr',
                 'amount' => '1.0',
             ], 'v4', true)
             ->andReturn($estimateResponse);
 
         // Mock batch transfer endpoint call.
-        // gasLimit for batch = 21000 * 2 = 42000
-        // gasPrice buffered = (574543567 / 10^9) * 1.3 = 0.574543567 * 1.3 = 0.7469066371 Gwei
-        // gasPriceGweiRounded = round(0.7469066371) = 1.0 Gwei
+        // gasLimit minimum = 150000. For batch: 150000 * 2 = 300000
+        // gasPrice minimum for ETH = 20 Gwei. Buffered: 20 * 1.3 = 26 Gwei
         $transferResponse = Mockery::mock(Response::class);
         $transferResponse->shouldReceive('successful')->andReturn(true);
         $transferResponse->shouldReceive('json')->andReturn(['signatureId' => 'sig_evm_est_456']);
@@ -242,8 +241,8 @@ class TatumCryptoGatewayTest extends TestCase
                     && $payload['from'] === '0xgas_addr'
                     && ! isset($payload['feeLimit'])
                     && isset($payload['fee'])
-                    && $payload['fee']['gasLimit'] === '42000'
-                    && $payload['fee']['gasPrice'] === '1';
+                    && $payload['fee']['gasLimit'] === '300000'
+                    && $payload['fee']['gasPrice'] === '26';
             }), 'v3', true)
             ->andReturn($transferResponse);
 
