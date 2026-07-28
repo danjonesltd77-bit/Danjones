@@ -390,10 +390,29 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
             'amount' => $amounts,
             'signatureId' => $hdWallet->private_key,
             'from' => $gasWallet->address,
-            'feeLimit' => $currency->fee,
             'tokenAddress' => $tokenAddress,
             'tokenId' => $tokenId,
         ];
+
+        if ($chain !== 'TRON') {
+            $totalAmount = array_sum($amounts);
+            $estimate = $this->estimateCustodialFee($currency, $from->address, $recipient_addresses[0], $totalAmount, true);
+
+            if ($estimate['success']) {
+                $payload['fee'] = [
+                    'gasLimit' => (string) $estimate['gasLimit'],
+                    'gasPrice' => (string) $estimate['gasPriceGwei'],
+                ];
+            } else {
+                $gasPrice = $this->estimateGasPriceGwei($chain);
+                $payload['fee'] = [
+                    'gasLimit' => '300000',
+                    'gasPrice' => (string) $gasPrice,
+                ];
+            }
+        } else {
+            $payload['feeLimit'] = $currency->fee;
+        }
 
         $response = $this->apiClient->post('/blockchain/sc/custodial/transfer/batch', $payload, 'v3', is_gaspump: true);
 
@@ -503,6 +522,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
             default:
                 $resultFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
+
                 return $resultFee;
         }
 
@@ -599,5 +619,106 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         $data['spentAddresses'] = $selected->where('is_system', false)->pluck('address')->toArray();
 
         return $data;
+    }
+
+    protected function estimateGasPriceGwei(string $chain): float
+    {
+        try {
+            $response = $this->apiClient->post('/blockchainOperations/gas', [
+                'chain' => $chain,
+                'from' => '0x0000000000000000000000000000000000000000',
+                'to' => '0x0000000000000000000000000000000000000000',
+                'amount' => '1.0',
+            ], 'v4');
+
+            if ($response->successful()) {
+                $gasPriceWei = (float) ($response->json()['gasPrice'] ?? 0);
+                if ($gasPriceWei > 0) {
+                    $gasPriceGwei = $gasPriceWei / 1000000000;
+
+                    // Add a 50% buffer to survive EIP-1559 base fee fluctuations during congestion
+                    $bufferedPrice = ceil($gasPriceGwei * 1.5);
+
+                    // Enforce reasonable minimums (1 Gwei for ETH, 3 Gwei for BSC)
+                    $minGasPrice = $chain === 'BSC' ? 3.0 : 1.0;
+
+                    return max($minGasPrice, $bufferedPrice);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("Failed to estimate gas price from Tatum for {$chain}: ".$e->getMessage());
+        }
+
+        // Fallbacks if API fails
+        return $chain === 'BSC' ? 5.0 : 50.0;
+    }
+
+    public function estimateCustodialFee(Currency $currency, string $sender_address, string $recipient_address, float $amount, bool $isBatch = false): array
+    {
+        $gasCurrencyId = $currency->parent_id ?: $currency->id;
+        $gasWallet = SystemWallet::where('currency_id', $gasCurrencyId)
+            ->where('type', SystemWalletType::GAS)
+            ->first();
+
+        if (! $gasWallet) {
+            Log::warning("Gas wallet not found when estimating custodial fee for {$currency->symbol}");
+
+            return ['success' => false];
+        }
+
+        $chain = $currency->token_currency;
+        if ($currency->parent_id != null) {
+            $chain = $currency->parent->token_currency;
+        }
+
+        try {
+            $response = $this->apiClient->post('/blockchain/estimate', [
+                'chain' => $chain,
+                'type' => 'TRANSFER_CUSTODIAL',
+                'sender' => $gasWallet->address,
+                'recipient' => $recipient_address,
+                'contractAddress' => $currency->token_address ?? '',
+                'custodialAddress' => $sender_address,
+                'amount' => (string) $amount,
+                'tokenType' => (int) ($currency->contract_type ?? 0),
+            ], 'v3', is_gaspump: true);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                $gasLimit = isset($data['gasLimit']) ? (float) $data['gasLimit'] : 300000;
+                $gasPriceGwei = isset($data['gasPrice']) ? (float) $data['gasPrice'] : 20;
+
+                if ($isBatch) {
+                    $gasLimit = $gasLimit * 2;
+                }
+
+                // Add a comfortable 30% gas price buffer to handle sudden block base fee spikes
+                $bufferedGasPriceGwei = $gasPriceGwei * 1.3;
+
+                // Round to integer Gwei for the fee object
+                $gasPriceGweiRounded = round($bufferedGasPriceGwei);
+                if ($gasPriceGweiRounded < 1) {
+                    $gasPriceGweiRounded = 1;
+                }
+
+                // For EVM chains, feeLimit is expressed in native token units (e.g. ETH). 1 native token = 10^9 Gwei.
+                $feeLimit = ($gasLimit * $bufferedGasPriceGwei) / (10 ** 9);
+
+                return [
+                    'success' => true,
+                    'feeLimit' => $feeLimit,
+                    'gasLimit' => (int) round($gasLimit),
+                    'gasPriceGwei' => (int) $gasPriceGweiRounded,
+                    'gasPrice' => $bufferedGasPriceGwei * (10 ** 9),
+                ];
+            }
+
+            Log::warning('Tatum fee estimation returned status: '.$response->status(), ['body' => $response->body()]);
+        } catch (\Exception $e) {
+            Log::error('Exception in estimateCustodialFee: '.$e->getMessage());
+        }
+
+        return ['success' => false];
     }
 }
