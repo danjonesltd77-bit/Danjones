@@ -22,10 +22,6 @@ class CreateAdvertisementAction
      */
     public function execute(User $user, array $data): P2PAdvertisement
     {
-        if ($data['type'] === AdvertisementType::BUY->value) {
-            throw new Exception('You cannot create a buy advertisement.', 400);
-        }
-
         $wallet = $user->wallet($data['currency_id']);
 
         if (! $wallet) {
@@ -56,14 +52,16 @@ class CreateAdvertisementAction
 
         // Cumulative check: Total advertised amount across all active ads cannot exceed balance.
         // Pending trades already deduct from balance immediately in InitiateTradeAction.
-        $totalAdvertisedAmount = $user->p2pAdvertisements()
-            ->where('currency_id', $data['currency_id'])
-            ->where('type', AdvertisementType::SELL->value)
-            ->where('is_active', true)
-            ->sum('available_amount');
+        if ($data['type'] === AdvertisementType::SELL->value) {
+            $totalAdvertisedAmount = $user->p2pAdvertisements()
+                ->where('currency_id', $data['currency_id'])
+                ->where('type', AdvertisementType::SELL->value)
+                ->where('is_active', true)
+                ->sum('available_amount');
 
-        if ($wallet->balance < ($totalAdvertisedAmount + $data['total_amount'])) {
-            throw new Exception('Insufficient crypto balance. Your active advertisements already commit a portion of your balance.', 400);
+            if ($wallet->balance < ($totalAdvertisedAmount + $data['total_amount'])) {
+                throw new Exception('Insufficient crypto balance. Your active advertisements already commit a portion of your balance.', 400);
+            }
         }
 
         // Note: We don't deduct balance on ad creation, only on trade initiation (escrow lock).

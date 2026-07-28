@@ -643,3 +643,66 @@ it('requires bank account when initiating a trade on a buy advertisement', funct
     $trade = P2PTrade::latest()->first();
     expect($trade->bank_account_id)->toEqual($this->sellerBankAccount->id);
 });
+
+it('can create a buy advertisement and complete the full trade flow', function () {
+    // Pre-create buyer wallet so the ad creation does not fail on wallet presence check
+    \App\Domains\Wallet\Models\Wallet::create([
+        'user_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'address' => 'buyer-address',
+        'index' => 1,
+    ]);
+
+    // 1. Create BUY advertisement (ad creator is BUYER, i.e., $this->buyer)
+    $response = actingAs($this->buyer)->postJson('/api/p2p/create-ads', [
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::BUY->value,
+        'price' => 1000,
+        'total_amount' => 5.0,
+        'min_limit' => 500,
+        'max_limit' => 5000,
+    ]);
+
+    $response->assertStatus(201);
+    $ad = P2PAdvertisement::latest()->first();
+    expect($ad->type)->toEqual(AdvertisementType::BUY);
+
+    // 2. Initiate trade on the BUY advertisement as the seller ($this->seller)
+    // Seller has 10 BTC
+    $this->sellerWallet->balance = 10.0;
+    $this->sellerWallet->save();
+
+    $response = actingAs($this->seller)->postJson('/api/p2p/initiate-trade', [
+        'advertisement_id' => $ad->id,
+        'amount' => 1000, // 1 BTC
+        'bank_account_id' => $this->sellerBankAccount->id,
+    ]);
+
+    $response->assertStatus(201);
+    $trade = P2PTrade::latest()->first();
+
+    // Verify crypto locked in escrow: seller wallet debited by 1.0
+    $this->sellerWallet->refresh();
+    expect((float) $this->sellerWallet->balance)->toEqual(9.0);
+
+    // 3. Mark trade as paid as the buyer ($this->buyer)
+    $file = \Illuminate\Http\UploadedFile::fake()->image('proof.jpg');
+    $response = actingAs($this->buyer)->postJson("/api/p2p/trades/{$trade->id}/pay", [
+        'payment_proof' => $file,
+    ]);
+
+    $response->assertStatus(200);
+    $trade->refresh();
+    expect($trade->status)->toEqual(TradeStatus::PAID);
+
+    // 4. Complete the trade and release crypto as the seller ($this->seller)
+    $response = actingAs($this->seller)->postJson("/api/p2p/trades/{$trade->id}/complete");
+
+    $response->assertStatus(200);
+    $trade->refresh();
+    expect($trade->status)->toEqual(TradeStatus::COMPLETED);
+
+    // Verify buyer received the crypto (minus p2p_fee_percentage if any, which defaults to 0)
+    $buyerWallet = $this->buyer->wallet($this->currency->id);
+    expect((float) $buyerWallet->balance)->toEqual(1.0);
+});
