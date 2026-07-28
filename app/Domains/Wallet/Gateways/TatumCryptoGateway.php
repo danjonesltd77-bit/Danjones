@@ -641,7 +641,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         try {
             $response = $this->apiClient->post('/blockchainOperations/gas', [
                 'chain' => $chain,
-                'from' => $gasWallet->address,
+                'from' => $sender_address,
                 'to' => $recipient_address,
                 'amount' => (string) $amount,
             ], 'v4', is_gaspump: true);
