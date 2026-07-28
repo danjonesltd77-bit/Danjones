@@ -658,7 +658,7 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                 $gasPriceGwei = $gasPriceWei / (10 ** 9);
 
                 if ($isBatch) {
-                    $gasLimit = $gasLimit * 2;
+                    // $gasLimit = $gasLimit * 2;
                 }
 
                 // Add a comfortable 30% gas price buffer to handle sudden block base fee spikes
