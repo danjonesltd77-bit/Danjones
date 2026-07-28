@@ -209,3 +209,28 @@ it('prevents verification if the NIN is already verified by another user', funct
             'message' => 'This NIN has already been verified by another user.',
         ]);
 });
+
+it('returns kyc verification status on user response', function () {
+    /** @var User $user */
+    $user = User::factory()->create();
+
+    // 1. Assert default 'unverified' status
+    $response = actingAs($user)->getJson('/api/user');
+    $response->assertStatus(200)
+        ->assertJsonPath('kyc_status', 'unverified')
+        ->assertJsonPath('kyc_verified', false);
+
+    // 2. Add approved verification and assert approved status
+    $verificationType = Verification::where('name', 'NIN')->first();
+    UserVerification::create([
+        'user_id' => $user->id,
+        'verification_id' => $verificationType->id,
+        'status' => 'approved',
+        'data' => [],
+    ]);
+
+    $response = actingAs($user)->getJson('/api/user');
+    $response->assertStatus(200)
+        ->assertJsonPath('kyc_status', 'approved')
+        ->assertJsonPath('kyc_verified', true);
+});

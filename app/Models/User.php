@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Domains\Kyc\Models\UserVerification;
 use App\Domains\Wallet\Models\Wallet;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -133,5 +134,31 @@ class User extends Authenticatable
             ->when(is_int($currency), fn ($q) => $q->where('currency_id', $currency))
             ->when(is_string($currency), fn ($q) => $q->whereHas('currency', fn ($c) => $c->where('symbol', $currency)))
             ->first();
+    }
+
+    /**
+     * Get the user's KYC status.
+     */
+    public function getKycStatusAttribute(): string
+    {
+        $verifications = UserVerification::where('user_id', $this->id)->get();
+
+        if ($verifications->isEmpty()) {
+            return 'unverified';
+        }
+
+        if ($verifications->contains('status', 'approved')) {
+            return 'approved';
+        }
+
+        if ($verifications->contains('status', 'pending')) {
+            return 'pending';
+        }
+
+        if ($verifications->contains('status', 'rejected')) {
+            return 'rejected';
+        }
+
+        return 'unverified';
     }
 }

@@ -20,6 +20,8 @@ class UserResource extends JsonResource
             'has_pin' => $this->pin != null,
             'email_verified_at' => $this->email_verified_at,
             'phone_verified_at' => $this->phone_verified_at,
+            'kyc_status' => $this->kyc_status,
+            'kyc_verified' => $this->kyc_status === 'approved',
             'created_at' => $this->created_at,
         ];
     }
