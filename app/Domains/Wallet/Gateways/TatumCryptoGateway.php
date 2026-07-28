@@ -639,22 +639,19 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         }
 
         try {
-            $response = $this->apiClient->post('/blockchain/estimate', [
+            $response = $this->apiClient->post('/blockchainOperations/gas', [
                 'chain' => $chain,
-                'type' => 'TRANSFER_CUSTODIAL',
-                'sender' => $gasWallet->address,
-                'recipient' => $recipient_address,
-                'contractAddress' => $currency->token_address ?? '',
-                'custodialAddress' => $sender_address,
+                'from' => $gasWallet->address,
+                'to' => $recipient_address,
                 'amount' => (string) $amount,
-                'tokenType' => (int) ($currency->contract_type ?? 0),
-            ], 'v3', is_gaspump: true);
+            ], 'v4', is_gaspump: true);
 
             if ($response->successful()) {
                 $data = $response->json();
 
                 $gasLimit = isset($data['gasLimit']) ? (float) $data['gasLimit'] : 300000;
-                $gasPriceGwei = isset($data['gasPrice']) ? (float) $data['gasPrice'] : 20;
+                $gasPriceWei = isset($data['gasPrice']) ? (float) $data['gasPrice'] : 20000000000;
+                $gasPriceGwei = $gasPriceWei / (10 ** 9);
 
                 if ($isBatch) {
                     $gasLimit = $gasLimit * 2;

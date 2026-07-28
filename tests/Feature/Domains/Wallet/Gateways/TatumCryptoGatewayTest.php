@@ -67,7 +67,7 @@ class TatumCryptoGatewayTest extends TestCase
         $estimateResponse->shouldReceive('successful')->andReturn(false);
         $this->apiClient->shouldReceive('post')
             ->once()
-            ->with('/blockchain/estimate', Mockery::any(), 'v3', true)
+            ->with('/blockchainOperations/gas', Mockery::any(), 'v4', true)
             ->andReturn($estimateResponse);
 
         // Mock batch transfer endpoint call and assert payload has 'fee' object with static fallback price (50 Gwei for ETH)
@@ -129,26 +129,22 @@ class TatumCryptoGatewayTest extends TestCase
             'currency_id' => $currency->id,
         ]);
 
-        // Mock /blockchain/estimate endpoint returning gasPrice = 50 Gwei, gasLimit = 150000
+        // Mock /blockchainOperations/gas endpoint returning gasPrice = 50 Gwei (50000000000 Wei), gasLimit = 150000
         $estimateResponse = Mockery::mock(Response::class);
         $estimateResponse->shouldReceive('successful')->andReturn(true);
         $estimateResponse->shouldReceive('json')->andReturn([
             'gasLimit' => '150000',
-            'gasPrice' => '50',
+            'gasPrice' => '50000000000',
         ]);
 
         $this->apiClient->shouldReceive('post')
             ->once()
-            ->with('/blockchain/estimate', [
+            ->with('/blockchainOperations/gas', [
                 'chain' => 'ETH',
-                'type' => 'TRANSFER_CUSTODIAL',
-                'sender' => '0xgas_addr',
-                'recipient' => '0xto_addr',
-                'contractAddress' => '0xcontract_addr',
-                'custodialAddress' => '0xfrom_addr',
+                'from' => '0xgas_addr',
+                'to' => '0xto_addr',
                 'amount' => '1.0',
-                'tokenType' => 0,
-            ], 'v3', true)
+            ], 'v4', true)
             ->andReturn($estimateResponse);
 
         // Mock batch transfer endpoint call.
@@ -181,6 +177,86 @@ class TatumCryptoGatewayTest extends TestCase
         );
 
         $this->assertEquals('sig_evm_est_123', $sigId);
+    }
+
+    public function test_gaspump_batch_transfer_evm_chain_handles_string_gas_estimates_from_v4()
+    {
+        $currency = Currency::factory()->create([
+            'is_gaspump' => true,
+            'symbol' => 'ETH',
+            'token_currency' => 'ETH',
+            'fee' => 0.0064,
+            'token_address' => '0xcontract_addr',
+            'token_id' => '0',
+            'contract_type' => 0,
+        ]);
+
+        $fromWallet = Wallet::factory()->create([
+            'address' => '0xfrom_addr',
+            'currency_id' => $currency->id,
+            'index' => 1,
+        ]);
+
+        $gasWallet = SystemWallet::factory()->create([
+            'address' => '0xgas_addr',
+            'currency_id' => $currency->id,
+            'type' => SystemWalletType::GAS,
+        ]);
+
+        $hdWallet = HdWallet::factory()->create([
+            'private_key' => '0xpriv_key',
+            'currency_id' => $currency->id,
+        ]);
+
+        // Mock /blockchainOperations/gas endpoint returning string values matching user sample
+        $estimateResponse = Mockery::mock(Response::class);
+        $estimateResponse->shouldReceive('successful')->andReturn(true);
+        $estimateResponse->shouldReceive('json')->andReturn([
+            'gasLimit' => '21000',
+            'gasPrice' => '574543567',
+        ]);
+
+        $this->apiClient->shouldReceive('post')
+            ->once()
+            ->with('/blockchainOperations/gas', [
+                'chain' => 'ETH',
+                'from' => '0xgas_addr',
+                'to' => '0xto_addr',
+                'amount' => '1.0',
+            ], 'v4', true)
+            ->andReturn($estimateResponse);
+
+        // Mock batch transfer endpoint call.
+        // gasLimit for batch = 21000 * 2 = 42000
+        // gasPrice buffered = (574543567 / 10^9) * 1.3 = 0.574543567 * 1.3 = 0.7469066371 Gwei
+        // gasPriceGweiRounded = round(0.7469066371) = 1.0 Gwei
+        $transferResponse = Mockery::mock(Response::class);
+        $transferResponse->shouldReceive('successful')->andReturn(true);
+        $transferResponse->shouldReceive('json')->andReturn(['signatureId' => 'sig_evm_est_456']);
+
+        $this->apiClient->shouldReceive('post')
+            ->once()
+            ->with('/blockchain/sc/custodial/transfer/batch', Mockery::on(function ($payload) {
+                return $payload['chain'] === 'ETH'
+                    && $payload['custodialAddress'] === '0xfrom_addr'
+                    && $payload['from'] === '0xgas_addr'
+                    && ! isset($payload['feeLimit'])
+                    && isset($payload['fee'])
+                    && $payload['fee']['gasLimit'] === '42000'
+                    && $payload['fee']['gasPrice'] === '1';
+            }), 'v3', true)
+            ->andReturn($transferResponse);
+
+        $sigId = $this->gateway->gaspumpBatchTransfer(
+            $fromWallet,
+            ['0xto_addr'],
+            ['1.0'],
+            $gasWallet,
+            $currency,
+            $hdWallet
+        );
+
+        $this->assertEquals('sig_evm_est_456', $sigId);
     }
 
     public function test_gaspump_batch_transfer_tron_chain_sends_fee_limit()
