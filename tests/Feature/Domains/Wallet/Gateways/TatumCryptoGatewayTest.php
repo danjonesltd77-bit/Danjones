@@ -70,22 +70,7 @@ class TatumCryptoGatewayTest extends TestCase
             ->with('/blockchain/estimate', Mockery::any(), 'v3', true)
             ->andReturn($estimateResponse);
 
-        // Mock gas price endpoint returning 60000000000 Wei (60 Gwei)
-        $gasEstimateResponse = Mockery::mock(Response::class);
-        $gasEstimateResponse->shouldReceive('successful')->andReturn(true);
-        $gasEstimateResponse->shouldReceive('json')->andReturn(['gasPrice' => '60000000000']);
-
-        $this->apiClient->shouldReceive('post')
-            ->once()
-            ->with('/blockchainOperations/gas', [
-                'chain' => 'ETH',
-                'from' => '0x0000000000000000000000000000000000000000',
-                'to' => '0x0000000000000000000000000000000000000000',
-                'amount' => '1.0',
-            ], 'v4')
-            ->andReturn($gasEstimateResponse);
-
-        // Mock batch transfer endpoint call and assert payload has 'fee' object with buffered price (60 * 1.5 = 90 Gwei)
+        // Mock batch transfer endpoint call and assert payload has 'fee' object with static fallback price (50 Gwei for ETH)
         $transferResponse = Mockery::mock(Response::class);
         $transferResponse->shouldReceive('successful')->andReturn(true);
         $transferResponse->shouldReceive('json')->andReturn(['signatureId' => 'sig_evm_123']);
@@ -99,7 +84,7 @@ class TatumCryptoGatewayTest extends TestCase
                     && ! isset($payload['feeLimit'])
                     && isset($payload['fee'])
                     && $payload['fee']['gasLimit'] === '300000'
-                    && $payload['fee']['gasPrice'] === '90';
+                    && $payload['fee']['gasPrice'] === '50';
             }), 'v3', true)
             ->andReturn($transferResponse);
 

@@ -11,6 +11,15 @@
                     <div class="text-base font-medium group-[.mode--light]:text-white">Transaction Details</div>
                 </div>
                 <div class="flex items-center gap-x-3 sm:ml-auto">
+                    @can('revert transactions')
+                        @if ($transaction->action->value === 'withdrawal' && $transaction->status->value === 'completed')
+                            <button wire:click="revert" wire:confirm="Are you sure you want to revert this transaction? This will refund the amount and fees back to the user's wallet."
+                                class="px-3 py-1.5 text-xs font-semibold text-white bg-danger hover:bg-danger/90 rounded-md transition-colors flex items-center gap-1 shadow-sm">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                                Revert Transaction
+                            </button>
+                        @endif
+                    @endcan
                     <div
                         class="px-3 py-1 text-xs font-bold tracking-wider uppercase rounded-full {{ strtolower($transaction->status?->value ?? '') == 'completed' ? 'bg-success/10 text-success' : (in_array(strtolower($transaction->status?->value ?? ''), ['pending', 'processing']) ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger') }}">
                         {{ $transaction->status?->label() ?? 'Pending' }}

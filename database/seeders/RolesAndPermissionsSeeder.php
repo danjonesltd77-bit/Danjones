@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RolesAndPermissionsSeeder extends Seeder
@@ -23,6 +22,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage kyc',
             'manage settings',
             'manage roles',
+            'revert transactions',
         ];
 
         foreach ($permissions as $permission) {
@@ -31,13 +31,13 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // create roles
         $superAdminRole = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super-admin']);
-        
+
         // As an industry standard, we can also create standard roles like admin or user here:
         // \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
 
         // Assign super-admin to first user if they exist
         $user = \App\Models\User::first();
-        if ($user && !$user->hasRole('super-admin')) {
+        if ($user && ! $user->hasRole('super-admin')) {
             $user->assignRole($superAdminRole);
         }
     }

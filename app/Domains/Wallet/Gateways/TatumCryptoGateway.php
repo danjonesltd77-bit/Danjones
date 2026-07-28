@@ -404,10 +404,9 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
                     'gasPrice' => (string) $estimate['gasPriceGwei'],
                 ];
             } else {
-                $gasPrice = $this->estimateGasPriceGwei($chain);
                 $payload['fee'] = [
                     'gasLimit' => '300000',
-                    'gasPrice' => (string) $gasPrice,
+                    'gasPrice' => $chain === 'BSC' ? '5' : '50',
                 ];
             }
         } else {
@@ -619,38 +618,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
         $data['spentAddresses'] = $selected->where('is_system', false)->pluck('address')->toArray();
 
         return $data;
-    }
-
-    protected function estimateGasPriceGwei(string $chain): float
-    {
-        try {
-            $response = $this->apiClient->post('/blockchainOperations/gas', [
-                'chain' => $chain,
-                'from' => '0x0000000000000000000000000000000000000000',
-                'to' => '0x0000000000000000000000000000000000000000',
-                'amount' => '1.0',
-            ], 'v4');
-
-            if ($response->successful()) {
-                $gasPriceWei = (float) ($response->json()['gasPrice'] ?? 0);
-                if ($gasPriceWei > 0) {
-                    $gasPriceGwei = $gasPriceWei / 1000000000;
-
-                    // Add a 50% buffer to survive EIP-1559 base fee fluctuations during congestion
-                    $bufferedPrice = ceil($gasPriceGwei * 1.5);
-
-                    // Enforce reasonable minimums (1 Gwei for ETH, 3 Gwei for BSC)
-                    $minGasPrice = $chain === 'BSC' ? 3.0 : 1.0;
-
-                    return max($minGasPrice, $bufferedPrice);
-                }
-            }
-        } catch (\Exception $e) {
-            Log::warning("Failed to estimate gas price from Tatum for {$chain}: ".$e->getMessage());
-        }
-
-        // Fallbacks if API fails
-        return $chain === 'BSC' ? 5.0 : 50.0;
     }
 
     public function estimateCustodialFee(Currency $currency, string $sender_address, string $recipient_address, float $amount, bool $isBatch = false): array
