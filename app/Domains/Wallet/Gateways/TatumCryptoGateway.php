@@ -503,12 +503,6 @@ class TatumCryptoGateway implements CryptoGatewayInterface, GaspumpServiceInterf
 
             default:
                 $resultFee = (float) $this->settingService->get('send_fee_'.Str::lower($symbol), $currency->fee);
-                Log::info('DOGE Fee Debug Default Case', [
-                    'symbol' => $symbol,
-                    'amount' => $amount,
-                    'resultFee' => $resultFee,
-                ]);
-
                 return $resultFee;
         }
 
