@@ -21,6 +21,12 @@ use function Pest\Laravel\actingAs;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'sqlite') {
+        \Illuminate\Support\Facades\DB::connection()->getPdo()->sqliteCreateFunction('UNIX_TIMESTAMP', function ($val) {
+            return $val ? strtotime($val) : null;
+        });
+    }
+
     $this->seller = User::factory()->create();
     $this->buyer = User::factory()->create();
 
@@ -705,4 +711,82 @@ it('can create a buy advertisement and complete the full trade flow', function (
     // Verify buyer received the crypto (minus p2p_fee_percentage if any, which defaults to 0)
     $buyerWallet = $this->buyer->wallet($this->currency->id);
     expect((float) $buyerWallet->balance)->toEqual(1.0);
+});
+
+it('can fetch the authenticated user profile stats when no user ID is specified', function () {
+    $response = actingAs($this->seller)->getJson('/api/p2p/profile');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'user' => ['id', 'name', 'initials', 'kyc_status', 'joined_at'],
+            'bank_accounts' => [
+                '*' => ['id', 'user_id', 'bank_id', 'account_name', 'account_number', 'is_active', 'bank'],
+            ],
+            'statistics' => ['total_trades', 'total_completed', 'completion_rate', 'avg_transaction_time_seconds', 'avg_transaction_time_formatted'],
+        ])
+        ->assertJsonPath('user.id', $this->seller->id)
+        ->assertJsonPath('bank_accounts.0.id', $this->sellerBankAccount->id)
+        ->assertJsonPath('bank_accounts.0.bank.name', $this->bank->name)
+        ->assertJsonPath('statistics.total_trades', 0)
+        ->assertJsonPath('statistics.total_completed', 0)
+        ->assertJsonPath('statistics.completion_rate', 0);
+});
+
+it('can fetch another user profile stats by ID', function () {
+    $response = actingAs($this->buyer)->getJson("/api/p2p/profile/{$this->seller->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('user.id', $this->seller->id);
+});
+
+it('correctly calculates total trades, completed trades, completion rate, and avg transaction time', function () {
+    $ad = P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+    ]);
+
+    // Create 3 trades: 2 completed, 1 cancelled
+
+    // Trade 1: completed, took 10 minutes (600s)
+    P2PTrade::factory()->create([
+        'advertisement_id' => $ad->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'status' => TradeStatus::COMPLETED,
+        'created_at' => now()->subMinutes(20),
+        'updated_at' => now()->subMinutes(10),
+    ]);
+
+    // Trade 2: completed, took 20 minutes (1200s)
+    P2PTrade::factory()->create([
+        'advertisement_id' => $ad->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'status' => TradeStatus::COMPLETED,
+        'created_at' => now()->subMinutes(30),
+        'updated_at' => now()->subMinutes(10),
+    ]);
+
+    // Trade 3: cancelled
+    P2PTrade::factory()->create([
+        'advertisement_id' => $ad->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'status' => TradeStatus::CANCELLED,
+    ]);
+
+    // Fetch seller's profile
+    $response = actingAs($this->buyer)->getJson("/api/p2p/profile/{$this->seller->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonPath('statistics.total_trades', 3)
+        ->assertJsonPath('statistics.total_completed', 2)
+        // completion rate: 2 / 3 * 100 = 66.67
+        ->assertJsonPath('statistics.completion_rate', 66.67)
+        // average time: (600 + 1200) / 2 = 900 seconds (15m)
+        ->assertJsonPath('statistics.avg_transaction_time_seconds', 900)
+        ->assertJsonPath('statistics.avg_transaction_time_formatted', '15m');
 });

@@ -11,17 +11,88 @@ use App\Domains\P2P\Actions\InitiateTradeAction;
 use App\Domains\P2P\Actions\MarkTradePaidAction;
 use App\Domains\P2P\Models\P2PAdvertisement;
 use App\Domains\P2P\Models\P2PTrade;
+use App\Enum\TradeStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\P2P\DisputeTradeRequest;
 use App\Http\Requests\P2P\InitiateTradeRequest;
 use App\Http\Requests\P2P\MarkTradePaidRequest;
 use App\Http\Requests\P2P\StoreAdvertisementRequest;
 use App\Http\Responses\ApiResponse;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class P2PController extends Controller
 {
+    public function profile(Request $request, ?User $user = null): JsonResponse
+    {
+        $targetUser = $user ?? $request->user();
+        $userId = $targetUser->id;
+
+        $stats = P2PTrade::where(function ($query) use ($userId) {
+            $query->where('buyer_id', $userId)
+                ->orWhere('seller_id', $userId);
+        })
+            ->selectRaw('
+                COUNT(*) as total_trades,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as total_completed,
+                AVG(CASE WHEN status = ? THEN UNIX_TIMESTAMP(updated_at) - UNIX_TIMESTAMP(created_at) ELSE NULL END) as avg_time
+            ', [TradeStatus::COMPLETED->value, TradeStatus::COMPLETED->value])
+            ->first();
+
+        $totalTrades = (int) ($stats->total_trades ?? 0);
+        $totalCompleted = (int) ($stats->total_completed ?? 0);
+        $completionRate = $totalTrades > 0
+            ? round(($totalCompleted / $totalTrades) * 100, 2)
+            : 0;
+
+        $avgTransactionTimeSeconds = $stats->avg_time !== null ? (float) $stats->avg_time : null;
+
+        $avgTransactionTimeFormatted = null;
+        if ($avgTransactionTimeSeconds !== null) {
+            $avgTransactionTimeFormatted = $this->formatDuration($avgTransactionTimeSeconds);
+        }
+
+        return ApiResponse::success([
+            'user' => [
+                'id' => $targetUser->id,
+                'name' => $targetUser->name,
+                'initials' => $targetUser->initials(),
+                'kyc_status' => $targetUser->kyc_status,
+                'joined_at' => $targetUser->created_at->toIso8601String(),
+            ],
+            'bank_accounts' => $targetUser->bankAccounts()->with('bank')->get(),
+            'statistics' => [
+                'total_trades' => $totalTrades,
+                'total_completed' => $totalCompleted,
+                'completion_rate' => $completionRate,
+                'avg_transaction_time_seconds' => $avgTransactionTimeSeconds,
+                'avg_transaction_time_formatted' => $avgTransactionTimeFormatted,
+            ],
+        ]);
+    }
+
+    private function formatDuration(float $seconds): string
+    {
+        $seconds = round($seconds);
+        if ($seconds < 60) {
+            return $seconds.'s';
+        }
+
+        $minutes = floor($seconds / 60);
+        $remainingSeconds = $seconds % 60;
+
+        if ($minutes < 60) {
+            return $remainingSeconds > 0 ? "{$minutes}m {$remainingSeconds}s" : "{$minutes}m";
+        }
+
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+
+        return $remainingMinutes > 0 ? "{$hours}h {$remainingMinutes}m" : "{$hours}h";
+    }
+
     public function indexAds()
     {
         $ads = P2PAdvertisement::where('is_active', true)

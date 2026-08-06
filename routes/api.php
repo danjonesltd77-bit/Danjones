@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('p2p')->controller(P2PController::class)->group(function () {
+        Route::get('/profile/{user?}', 'profile');
         Route::get('/ads', 'indexAds');
         Route::get('/my-ads', 'myAds');
         Route::get('/my-trades', 'myTrades');
