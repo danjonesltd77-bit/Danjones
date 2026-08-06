@@ -11,6 +11,7 @@ use App\Domains\P2P\Actions\InitiateTradeAction;
 use App\Domains\P2P\Actions\MarkTradePaidAction;
 use App\Domains\P2P\Models\P2PAdvertisement;
 use App\Domains\P2P\Models\P2PTrade;
+use App\Enum\AdvertisementType;
 use App\Enum\TradeStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\P2P\DisputeTradeRequest;
@@ -93,9 +94,13 @@ class P2PController extends Controller
         return $remainingMinutes > 0 ? "{$hours}h {$remainingMinutes}m" : "{$hours}h";
     }
 
-    public function indexAds()
+    public function indexAds(Request $request): JsonResponse
     {
         $ads = P2PAdvertisement::where('is_active', true)
+            ->when(
+                in_array($request->type, array_column(AdvertisementType::cases(), 'value')),
+                fn ($query) => $query->where('type', $request->type)
+            )
             ->with(['user', 'currency', 'bankAccount.bank'])
             ->latest()
             ->get();
@@ -103,9 +108,13 @@ class P2PController extends Controller
         return ApiResponse::success(['ads' => $ads]);
     }
 
-    public function myAds(Request $request)
+    public function myAds(Request $request): JsonResponse
     {
         $ads = $request->user()->p2pAdvertisements()
+            ->when(
+                in_array($request->type, array_column(AdvertisementType::cases(), 'value')),
+                fn ($query) => $query->where('type', $request->type)
+            )
             ->with(['currency', 'bankAccount.bank'])
             ->latest()
             ->get();

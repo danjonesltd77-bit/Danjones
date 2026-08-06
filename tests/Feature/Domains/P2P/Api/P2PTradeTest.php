@@ -790,3 +790,88 @@ it('correctly calculates total trades, completed trades, completion rate, and av
         ->assertJsonPath('statistics.avg_transaction_time_seconds', 900)
         ->assertJsonPath('statistics.avg_transaction_time_formatted', '15m');
 });
+
+it('can list all active advertisements and filter them by type', function () {
+    // 1. Create a BUY active advertisement
+    P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::BUY,
+        'is_active' => true,
+    ]);
+
+    // 2. Create a SELL active advertisement
+    P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'is_active' => true,
+    ]);
+
+    // 3. Create an INACTIVE advertisement (should not show up at all in indexAds)
+    P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'is_active' => false,
+    ]);
+
+    // Test: No filter (returns both active ads)
+    $response = actingAs($this->buyer)->getJson('/api/p2p/ads');
+    $response->assertStatus(200);
+    expect(count($response->json('ads')))->toEqual(2);
+
+    // Test: Filter by BUY (returns only 1)
+    $response = actingAs($this->buyer)->getJson('/api/p2p/ads?type=buy');
+    $response->assertStatus(200);
+    expect(count($response->json('ads')))->toEqual(1);
+    expect($response->json('ads.0.type'))->toEqual(AdvertisementType::BUY->value);
+
+    // Test: Filter by SELL (returns only 1)
+    $response = actingAs($this->buyer)->getJson('/api/p2p/ads?type=sell');
+    $response->assertStatus(200);
+    expect(count($response->json('ads')))->toEqual(1);
+    expect($response->json('ads.0.type'))->toEqual(AdvertisementType::SELL->value);
+});
+
+it('can list my advertisements and filter them by type', function () {
+    // Seller creates 1 BUY active ad and 1 SELL active ad
+    P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::BUY,
+        'is_active' => true,
+    ]);
+
+    P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'is_active' => true,
+    ]);
+
+    // Buyer creates 1 active ad (should not show up in Seller's myAds)
+    P2PAdvertisement::factory()->create([
+        'user_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'is_active' => true,
+    ]);
+
+    // Test: No filter for Seller (returns 2 ads)
+    $response = actingAs($this->seller)->getJson('/api/p2p/my-ads');
+    $response->assertStatus(200);
+    expect(count($response->json('ads')))->toEqual(2);
+
+    // Test: Filter by BUY (returns 1 ad)
+    $response = actingAs($this->seller)->getJson('/api/p2p/my-ads?type=buy');
+    $response->assertStatus(200);
+    expect(count($response->json('ads')))->toEqual(1);
+    expect($response->json('ads.0.type'))->toEqual(AdvertisementType::BUY->value);
+
+    // Test: Filter by SELL (returns 1 ad)
+    $response = actingAs($this->seller)->getJson('/api/p2p/my-ads?type=sell');
+    $response->assertStatus(200);
+    expect(count($response->json('ads')))->toEqual(1);
+    expect($response->json('ads.0.type'))->toEqual(AdvertisementType::SELL->value);
+});
