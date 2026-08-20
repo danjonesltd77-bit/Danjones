@@ -23,6 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/verify-transaction-pin', [AuthController::class, 'verifyTransactionPin']);
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
+    Route::post('/fcm-token', [AuthController::class, 'updateFcmToken']);
     Route::delete('/delete-account', [AuthController::class, 'deleteAccount']);
 
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);

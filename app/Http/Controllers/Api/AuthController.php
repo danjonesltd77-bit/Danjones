@@ -9,13 +9,13 @@ use App\Domains\User\Actions\UpdateTransactionPinAction;
 use App\Domains\User\Actions\VerifyOtpAction;
 use App\Domains\User\Notifications\ForgotPasswordOtpNotification;
 use App\Domains\Wallet\Actions\CreateDefaultWalletsAction;
-use App\Domains\Wallet\Models\Transaction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\DeleteAccountRequest;
 use App\Http\Requests\Api\ForgotPasswordRequest;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Requests\Api\ResetPasswordRequest;
 use App\Http\Requests\Api\SetTransactionPinRequest;
+use App\Http\Requests\Api\UpdateFcmTokenRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
 use App\Http\Requests\Api\UpdateTransactionPinRequest;
 use App\Http\Resources\UserResource;
@@ -276,6 +276,19 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Your account has been successfully deleted.',
+        ]);
+    }
+
+    public function updateFcmToken(UpdateFcmTokenRequest $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        $user->update([
+            'fcm_token' => $request->fcm_token,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'FCM token updated successfully.',
         ]);
     }
 }
