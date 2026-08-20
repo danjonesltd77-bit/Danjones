@@ -78,6 +78,7 @@ class CreateAdvertisementAction
             'min_limit' => $data['min_limit'],
             'max_limit' => $data['max_limit'],
             'terms' => $data['terms'] ?? null,
+            'payment_window' => $data['payment_window'] ?? 30,
             'is_active' => true,
         ]);
     }

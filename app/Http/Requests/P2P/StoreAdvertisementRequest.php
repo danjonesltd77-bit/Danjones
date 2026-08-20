@@ -31,6 +31,7 @@ class StoreAdvertisementRequest extends FormRequest
             'min_limit' => ['required', 'numeric', 'min:0'],
             'max_limit' => ['required', 'numeric', 'gte:min_limit'],
             'terms' => ['nullable', 'string', 'max:1000'],
+            'payment_window' => ['nullable', 'integer', 'min:15', 'max:1440'],
             'bank_account_id' => [
                 'required_if:type,sell',
                 'nullable',

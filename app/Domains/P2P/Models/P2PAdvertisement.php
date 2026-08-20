@@ -28,6 +28,7 @@ class P2PAdvertisement extends Model
         'min_limit',
         'max_limit',
         'terms',
+        'payment_window',
         'is_active',
     ];
 
@@ -41,6 +42,7 @@ class P2PAdvertisement extends Model
             'available_amount' => 'float',
             'min_limit' => 'float',
             'max_limit' => 'float',
+            'payment_window' => 'integer',
         ];
     }
 

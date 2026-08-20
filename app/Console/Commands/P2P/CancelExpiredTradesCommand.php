@@ -6,7 +6,6 @@ use App\Domains\P2P\Actions\CancelTradeAction;
 use App\Domains\P2P\Models\P2PTrade;
 use App\Enum\TradeStatus;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 
 class CancelExpiredTradesCommand extends Command
 {
@@ -29,11 +28,9 @@ class CancelExpiredTradesCommand extends Command
      */
     public function handle(CancelTradeAction $action): int
     {
-        $expirationTime = Carbon::now()->subMinutes(30);
-
         $expiredTrades = P2PTrade::where('status', TradeStatus::PENDING)
-            ->where('created_at', '<', $expirationTime)
-            ->get();
+            ->get()
+            ->filter(fn (P2PTrade $trade) => $trade->created_at->addMinutes($trade->payment_window ?? 30)->isPast());
 
         if ($expiredTrades->isEmpty()) {
             $this->info('No expired trades found.');

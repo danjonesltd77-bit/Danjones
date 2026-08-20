@@ -29,6 +29,7 @@ class P2PTrade extends Model
         'dispute_reason',
         'payment_proof',
         'bank_account_id',
+        'payment_window',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class P2PTrade extends Model
             'status' => TradeStatus::class,
             'crypto_amount' => 'float',
             'fiat_amount' => 'float',
+            'payment_window' => 'integer',
         ];
     }
 

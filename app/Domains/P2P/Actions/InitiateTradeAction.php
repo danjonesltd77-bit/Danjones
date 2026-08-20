@@ -102,6 +102,7 @@ class InitiateTradeAction
                 'fiat_amount' => $fiatAmount,
                 'status' => TradeStatus::PENDING,
                 'bank_account_id' => $bankAccountIdToUse,
+                'payment_window' => $lockedAd->payment_window,
             ]);
 
             $reference = 'trade_'.$trade->id;

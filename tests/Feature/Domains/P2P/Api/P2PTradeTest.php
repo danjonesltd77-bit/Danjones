@@ -875,3 +875,141 @@ it('can list my advertisements and filter them by type', function () {
     expect(count($response->json('ads')))->toEqual(1);
     expect($response->json('ads.0.type'))->toEqual(AdvertisementType::SELL->value);
 });
+
+it('validates payment_window when creating advertisements', function () {
+    // Under minimum limit (15)
+    $response = actingAs($this->seller)->postJson('/api/p2p/create-ads', [
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL->value,
+        'price' => 50000,
+        'total_amount' => 5.0,
+        'min_limit' => 5000,
+        'max_limit' => 250000,
+        'payment_window' => 10,
+        'bank_account_id' => $this->sellerBankAccount->id,
+    ]);
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors('payment_window');
+
+    // Over maximum limit (1440)
+    $response = actingAs($this->seller)->postJson('/api/p2p/create-ads', [
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL->value,
+        'price' => 50000,
+        'total_amount' => 5.0,
+        'min_limit' => 5000,
+        'max_limit' => 250000,
+        'payment_window' => 1500,
+        'bank_account_id' => $this->sellerBankAccount->id,
+    ]);
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors('payment_window');
+
+    // Valid custom payment window
+    $response = actingAs($this->seller)->postJson('/api/p2p/create-ads', [
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL->value,
+        'price' => 50000,
+        'total_amount' => 5.0,
+        'min_limit' => 5000,
+        'max_limit' => 250000,
+        'payment_window' => 45,
+        'bank_account_id' => $this->sellerBankAccount->id,
+    ]);
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('p2p_advertisements', [
+        'user_id' => $this->seller->id,
+        'payment_window' => 45,
+    ]);
+});
+
+it('copies payment_window to trade when initiating a trade', function () {
+    $ad = P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'price' => 50000,
+        'total_amount' => 5.0,
+        'available_amount' => 5.0,
+        'min_limit' => 5000,
+        'max_limit' => 250000,
+        'payment_window' => 60,
+        'bank_account_id' => $this->sellerBankAccount->id,
+    ]);
+
+    $response = actingAs($this->buyer)->postJson('/api/p2p/initiate-trade', [
+        'advertisement_id' => $ad->id,
+        'amount' => 10000,
+    ]);
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('p2p_trades', [
+        'advertisement_id' => $ad->id,
+        'buyer_id' => $this->buyer->id,
+        'payment_window' => 60,
+    ]);
+});
+
+it('cancels expired trades respecting the custom payment window', function () {
+    // 1. Create a trade with 15-minute payment window that is 16 minutes old (should expire)
+    $ad15 = P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'payment_window' => 15,
+    ]);
+
+    $trade15 = P2PTrade::factory()->create([
+        'advertisement_id' => $ad15->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'crypto_amount' => 1.0,
+        'fiat_amount' => 50000.0,
+        'status' => TradeStatus::PENDING,
+        'payment_window' => 15,
+        'created_at' => now()->subMinutes(16),
+    ]);
+
+    // 2. Create a trade with 60-minute payment window that is 40 minutes old (should NOT expire)
+    $ad60 = P2PAdvertisement::factory()->create([
+        'user_id' => $this->seller->id,
+        'currency_id' => $this->currency->id,
+        'type' => AdvertisementType::SELL,
+        'payment_window' => 60,
+    ]);
+
+    $trade60 = P2PTrade::factory()->create([
+        'advertisement_id' => $ad60->id,
+        'seller_id' => $this->seller->id,
+        'buyer_id' => $this->buyer->id,
+        'currency_id' => $this->currency->id,
+        'crypto_amount' => 1.0,
+        'fiat_amount' => 50000.0,
+        'status' => TradeStatus::PENDING,
+        'payment_window' => 60,
+        'created_at' => now()->subMinutes(40),
+    ]);
+
+    // Setup escrow and wallet balances for test
+    $escrow = SystemWallet::where('type', SystemWalletType::ESCROW)->first();
+    $escrow->balance = 2.0;
+    $escrow->save();
+
+    $this->sellerWallet->balance = 8.0;
+    $this->sellerWallet->save();
+
+    // Run the command
+    $this->artisan('p2p:cancel-expired-trades')
+        ->expectsOutput('Found 1 expired trade(s). Proceeding with cancellation...')
+        ->expectsOutput("Trade #{$trade15->id} cancelled successfully.")
+        ->assertExitCode(0);
+
+    // Verify trade15 status is cancelled
+    $trade15->refresh();
+    expect($trade15->status)->toBe(TradeStatus::CANCELLED);
+
+    // Verify trade60 status remains pending
+    $trade60->refresh();
+    expect($trade60->status)->toBe(TradeStatus::PENDING);
+});
